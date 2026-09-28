@@ -13,3 +13,6 @@ android/local.properties
 # CI 生成的 native 库与资源
 android/app/src/main/jniLibs/
 android/app/src/main/assets/
+
+push_via_api.py
+put_file_via_api.py

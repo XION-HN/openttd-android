@@ -21,6 +21,58 @@ index 2891bee..65f53ae 100644
  # All other files are added via target_sources()
  
  if(MSVC)
+diff --git a/src/fileio.cpp b/src/fileio.cpp
+index 51b3333..0fcf8d8 100644
+--- a/src/fileio.cpp
++++ b/src/fileio.cpp
+@@ -782,22 +782,32 @@ void DetermineBasePaths(std::string_view exe)
+ #endif
+ 
+ #if !defined(WITH_PERSONAL_DIR)
+-	_searchpaths[SP_PERSONAL_DIR].clear();
++_searchpaths[SP_PERSONAL_DIR].clear();
+ #else
+-	if (!homedir.empty()) {
+-		tmp = std::move(homedir);
+-		tmp += PATHSEP;
+-		tmp += PERSONAL_DIR;
+-		AppendPathSeparator(tmp);
+-		_searchpaths[SP_PERSONAL_DIR] = tmp;
+-
+-		tmp += "content_download";
+-		AppendPathSeparator(tmp);
+-		_searchpaths[SP_AUTODOWNLOAD_PERSONAL_DIR] = tmp;
+-	} else {
+-		_searchpaths[SP_PERSONAL_DIR].clear();
+-		_searchpaths[SP_AUTODOWNLOAD_PERSONAL_DIR].clear();
+-	}
++/* Android 等平台可以用 OTTD_PERSONAL_DIR 直接把个人目录（配置/存档/数据）
++ * 指到 sdcard，方便用文件管理器管理。 */
++if (auto personal_override = GetEnv("OTTD_PERSONAL_DIR"); personal_override.has_value() && !personal_override->empty()) {
++tmp = *personal_override;
++AppendPathSeparator(tmp);
++_searchpaths[SP_PERSONAL_DIR] = tmp;
++
++tmp += "content_download";
++AppendPathSeparator(tmp);
++_searchpaths[SP_AUTODOWNLOAD_PERSONAL_DIR] = tmp;
++} else if (!homedir.empty()) {
++tmp = homedir;
++tmp += PATHSEP;
++tmp += PERSONAL_DIR;
++AppendPathSeparator(tmp);
++_searchpaths[SP_PERSONAL_DIR] = tmp;
++
++tmp += "content_download";
++AppendPathSeparator(tmp);
++_searchpaths[SP_AUTODOWNLOAD_PERSONAL_DIR] = tmp;
++} else {
++_searchpaths[SP_PERSONAL_DIR].clear();
++_searchpaths[SP_AUTODOWNLOAD_PERSONAL_DIR].clear();
++}
+ #endif
+ 
+ #if defined(WITH_SHARED_DIR)
 diff --git a/src/ini.cpp b/src/ini.cpp
 index 4c87f08..e558999 100644
 --- a/src/ini.cpp

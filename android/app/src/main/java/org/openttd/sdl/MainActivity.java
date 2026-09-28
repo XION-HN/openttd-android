@@ -1,12 +1,16 @@
 package org.openttd.sdl;
 
+import android.app.AlertDialog;
 import android.content.ContentValues;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.system.Os;
 import android.util.Log;
 
@@ -20,29 +24,36 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
  * SDLActivity 的 OpenTTD 包装层。
  *
- * 负责三件事：
- *  1. 首次启动把 APK assets/data/ 解压到 app 私有目录 files/.opttd/
- *     （OpenTTD 的 PERSONAL_DIR=".opttd"，HOME=filesDir）；
- *  2. Java 未捕获异常写日志到 sdcard：Download/OpenTTD/OpenTTD-crash-*.txt；
- *  3. 提前加载 native 库并安装 native 信号崩溃处理器（写同一份日志），
- *     捕获 SIGSEGV/SIGABRT 等，并顺带把 native stderr 重定向进日志。
+ * 数据/存档目录优先级：
+ *   1. /sdcard/OpenTTD            （需要「所有文件访问权限」，方便文件管理器管理）
+ *   2. /sdcard/Android/data/.../files/OpenTTD （无需权限，但目录较深）
+ *   3. app 私有目录 .openttd      （兜底）
+ *
+ * 首次启动把 APK assets/data/ 解压到该目录，并自动配置：
+ *   - 中文界面 + 内置 CJK 字体
+ *   - 内置「中国地名」NewGRF（默认对新游戏生效，town_name = 21）
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 6)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 7)";
     private static final String ASSET_ROOT = "data";
-    private static final String DATA_SUBDIR = ".openttd";
-    private static final String ASSET_VERSION = "15.3-5";
+    private static final String ASSET_VERSION = "15.3-6";
+    private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
+    private static final String TOWN_NAME_GRF = "chinese_town_names.grf";
+    private static final String PUBLIC_DATA_DIR = "OpenTTD";
 
     private static ParcelFileDescriptor sCrashPfd;
     private static OutputStream sCrashOut;
     private static String sCrashPath = "(not created)";
+    private static File sDataDir;
 
     private static native void nativeSetupCrashHandler(int fd, String appVersion);
     private static native void nativeLogMarker(String msg);
@@ -53,31 +64,28 @@ public class MainActivity extends SDLActivity {
         logLine("=== OpenTTD app onCreate ===");
         logLine("crash log path: " + sCrashPath);
 
+        sDataDir = resolveDataDir();
+        logLine("data dir: " + sDataDir.getAbsolutePath());
         try {
-            Os.setenv("HOME", getFilesDir().getAbsolutePath(), true);
-            logLine("HOME=" + getFilesDir().getAbsolutePath());
+            Os.setenv("HOME", sDataDir.getAbsolutePath(), true);
+            Os.setenv("OTTD_PERSONAL_DIR", sDataDir.getAbsolutePath(), true);
         } catch (Throwable t) {
-            logLine("setenv HOME failed: " + Log.getStackTraceString(t));
+            logLine("setenv failed: " + Log.getStackTraceString(t));
         }
 
         try {
             extractAssetsIfNeeded();
             logLine("assets extracted/up-to-date");
-            File gf = new File(dataDir(), "baseset/OpenGFX/opengfx.obg");
-            logLine("check baseset/OpenGFX/opengfx.obg: exists=" + gf.isFile() + " size=" + gf.length());
-            File langEn = new File(dataDir(), "lang/english.lng");
-            logLine("check lang/english.lng: exists=" + langEn.isFile() + " size=" + langEn.length());
-            File baseDir = new File(dataDir(), "baseset");
-            String[] baseEntries = baseDir.list();
-            logLine("baseset entries: " + (baseEntries == null ? "null" : baseEntries.length));
+            File gf = new File(sDataDir, "baseset/OpenGFX/opengfx.obg");
+            logLine("check opengfx.obg: exists=" + gf.isFile() + " size=" + gf.length());
+            File grf = new File(sDataDir, "newgrf/" + TOWN_NAME_GRF);
+            logLine("check town name grf: exists=" + grf.isFile() + " size=" + grf.length());
         } catch (Throwable t) {
             logLine("asset extraction FAILED: " + Log.getStackTraceString(t));
         }
 
-        // 配置中文界面与内置 CJK 字体（FreeType + NotoSansCJK 子集）。
         ensureChineseConfig();
 
-        // 提前加载 native 库，让崩溃处理器尽早生效（SDLActivity 之后还会再 load 一次，幂等）
         try {
             System.loadLibrary("SDL2");
             System.loadLibrary("main");
@@ -85,8 +93,6 @@ public class MainActivity extends SDLActivity {
             if (sCrashPfd != null) {
                 nativeSetupCrashHandler(sCrashPfd.getFd(), APP_VERSION);
                 nativeLogMarker("[java] native crash handler installed");
-            } else {
-                logLine("crash fd unavailable; native handler not installed");
             }
         } catch (Throwable t) {
             logLine("FATAL loadLibrary failed: " + Log.getStackTraceString(t));
@@ -94,78 +100,50 @@ public class MainActivity extends SDLActivity {
 
         super.onCreate(savedInstanceState);
         logLine("super.onCreate returned");
+
+        maybeAskForStoragePermission();
     }
 
-    // ------------------------------------------------------------- language
+    // --------------------------------------------------------------- storage
 
-    private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
+    private File resolveDataDir() {
+        boolean granted = false;
+        if (Build.VERSION.SDK_INT >= 30) {
+            granted = Environment.isExternalStorageManager();
+        } else {
+            granted = checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        }
+        if (granted) {
+            return new File(Environment.getExternalStorageDirectory(), PUBLIC_DATA_DIR);
+        }
+        File ext = getExternalFilesDir(null);
+        if (ext != null) return new File(ext, PUBLIC_DATA_DIR);
+        return new File(getFilesDir(), ".openttd");
+    }
 
-    /** 配置中文界面 + 打包进去的 CJK 字体（FreeType 路径）。 */
-    private void ensureChineseConfig() {
+    private void maybeAskForStoragePermission() {
+        if (Build.VERSION.SDK_INT < 30) return;
+        if (Environment.isExternalStorageManager()) return;
         try {
-            File cfg = new File(dataDir(), "openttd.cfg");
-            String content = cfg.isFile() ? readText(cfg) : "";
-            content = setIniKey(content, "language", "simplified_chinese.lng");
-            content = setIniKey(content, "small_font", CJK_FONT);
-            content = setIniKey(content, "medium_font", CJK_FONT);
-            content = setIniKey(content, "large_font", CJK_FONT);
-            content = setIniKey(content, "mono_font", CJK_FONT);
-            writeText(cfg, content);
-            logLine("cfg: language=simplified_chinese.lng font=" + CJK_FONT);
+            new AlertDialog.Builder(this)
+                    .setTitle("存档目录 / Storage")
+                    .setMessage("授予「所有文件访问权限」后，OpenTTD 的存档与配置会放在 /sdcard/OpenTTD，方便用文件管理器管理；\n\n授权后请重新打开 OpenTTD。未授权时会暂存在 Android/data 目录。")
+                    .setPositiveButton("去授权", (d, w) -> {
+                        try {
+                            startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                    Uri.parse("package:" + getPackageName())));
+                        } catch (Throwable t) {
+                            try {
+                                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+                            } catch (Throwable ignored) { }
+                        }
+                    })
+                    .setNegativeButton("稍后", null)
+                    .show();
         } catch (Throwable t) {
-            logLine("ensureChineseConfig failed: " + Log.getStackTraceString(t));
+            logLine("storage dialog failed: " + t);
         }
     }
-
-    /** 在 ini 文本里设置 key=value；没有该行就插到 [misc] 段下，没有 [misc] 就新建。 */
-    private static String setIniKey(String content, String key, String value) {
-        String[] lines = content.split("\\r?\\n", -1);
-        boolean replaced = false;
-        for (int i = 0; i < lines.length; i++) {
-            String t = lines[i].trim();
-            int eq = t.indexOf('=');
-            if (eq > 0 && t.substring(0, eq).trim().equals(key)) {
-                lines[i] = key + " = " + value;
-                replaced = true;
-            }
-        }
-        if (!replaced) {
-            int misc = -1;
-            for (int i = 0; i < lines.length; i++) {
-                if (lines[i].trim().equalsIgnoreCase("[misc]")) { misc = i; break; }
-            }
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < lines.length; i++) {
-                sb.append(lines[i]).append('\n');
-                if (i == misc) sb.append(key).append(" = ").append(value).append('\n');
-            }
-            if (misc < 0) {
-                if (sb.length() > 0 && sb.charAt(sb.length() - 1) != '\n') sb.append('\n');
-                sb.append("[misc]\n").append(key).append(" = ").append(value).append('\n');
-            }
-            return sb.toString();
-        }
-        StringBuilder sb = new StringBuilder();
-        for (String line : lines) sb.append(line).append('\n');
-        return sb.toString();
-    }
-
-    private static String readText(File f) throws IOException {
-        try (InputStream in = new FileInputStream(f)) {
-            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
-            return bos.toString("UTF-8");
-        }
-    }
-
-    private static void writeText(File f, String text) throws IOException {
-        try (OutputStream out = new FileOutputStream(f)) {
-            out.write(text.getBytes(StandardCharsets.UTF_8));
-        }
-    }
-
 
     // ---------------------------------------------------------------- crash log
 
@@ -211,9 +189,7 @@ public class MainActivity extends SDLActivity {
             logLine("=== JAVA UNCAUGHT EXCEPTION ===");
             logLine("thread: " + thread.getName());
             logLine(Log.getStackTraceString(error));
-            try {
-                if (sCrashOut != null) sCrashOut.flush();
-            } catch (Throwable ignored) { }
+            try { if (sCrashOut != null) sCrashOut.flush(); } catch (Throwable ignored) { }
             if (previous != null) {
                 previous.uncaughtException(thread, error);
             } else {
@@ -231,22 +207,14 @@ public class MainActivity extends SDLActivity {
             }
         } catch (Throwable ignored) { }
         try {
-            if (msg.length() > 3000) {
-                Log.i(TAG, msg.substring(0, 3000) + " ...(truncated)");
-            } else {
-                Log.i(TAG, msg);
-            }
+            Log.i(TAG, msg.length() > 3000 ? msg.substring(0, 3000) + " ...(truncated)" : msg);
         } catch (Throwable ignored) { }
     }
 
     // -------------------------------------------------------------- assets/data
 
-    private File dataDir() {
-        return new File(getFilesDir(), DATA_SUBDIR);
-    }
-
     private boolean assetsUpToDate() {
-        File stamp = new File(dataDir(), ".assets-version");
+        File stamp = new File(sDataDir, ".assets-version");
         if (!stamp.isFile()) return false;
         try (InputStream in = new FileInputStream(stamp)) {
             byte[] buf = new byte[64];
@@ -259,13 +227,11 @@ public class MainActivity extends SDLActivity {
 
     private void extractAssetsIfNeeded() throws IOException {
         if (assetsUpToDate()) return;
-
-        File base = dataDir();
-        if (!base.isDirectory() && !base.mkdirs()) {
-            throw new IOException("cannot create data dir: " + base);
+        if (!sDataDir.isDirectory() && !sDataDir.mkdirs()) {
+            throw new IOException("cannot create data dir: " + sDataDir);
         }
-        copyAssetDir(ASSET_ROOT, base);
-        try (OutputStream out = new FileOutputStream(new File(base, ".assets-version"))) {
+        copyAssetDir(ASSET_ROOT, sDataDir);
+        try (OutputStream out = new FileOutputStream(new File(sDataDir, ".assets-version"))) {
             out.write(ASSET_VERSION.getBytes(StandardCharsets.UTF_8));
         }
     }
@@ -299,9 +265,85 @@ public class MainActivity extends SDLActivity {
              OutputStream out = new FileOutputStream(target)) {
             byte[] buf = new byte[64 * 1024];
             int n;
-            while ((n = in.read(buf)) > 0) {
-                out.write(buf, 0, n);
+            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+        }
+    }
+
+    // -------------------------------------------------------------- openttd.cfg
+
+    private void ensureChineseConfig() {
+        try {
+            File cfg = new File(sDataDir, "openttd.cfg");
+            String content = cfg.isFile() ? readText(cfg) : "";
+            content = setIniKey(content, "misc", "language", "simplified_chinese.lng");
+            content = setIniKey(content, "misc", "small_font", CJK_FONT);
+            content = setIniKey(content, "misc", "medium_font", CJK_FONT);
+            content = setIniKey(content, "misc", "large_font", CJK_FONT);
+            content = setIniKey(content, "misc", "mono_font", CJK_FONT);
+            // 内置中国地名 NewGRF：默认加入新游戏，并使用它作为地名生成器
+            content = setIniKey(content, "newgrf", TOWN_NAME_GRF, null);
+            content = setIniKey(content, "game_creation", "town_name", "21");
+            writeText(cfg, content);
+            logLine("cfg: zh-CN + CJK font + town name grf");
+        } catch (Throwable t) {
+            logLine("ensureChineseConfig failed: " + Log.getStackTraceString(t));
+        }
+    }
+
+    /** 在 ini 的 [section] 下设置 key=value；value 为 null 时写成空值。 */
+    private static String setIniKey(String content, String section, String key, String value) {
+        List<String> lines = new ArrayList<>();
+        for (String l : content.split("\\r?\\n", -1)) lines.add(l);
+        String header = "[" + section + "]";
+        String newLine = value == null ? (key + " =") : (key + " = " + value);
+
+        int secStart = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).trim().equalsIgnoreCase(header)) { secStart = i; break; }
+        }
+        if (secStart < 0) {
+            if (lines.isEmpty() || !lines.get(lines.size() - 1).isEmpty()) lines.add("");
+            lines.add(header);
+            lines.add(newLine);
+            return joinLines(lines);
+        }
+        int secEnd = lines.size();
+        for (int i = secStart + 1; i < lines.size(); i++) {
+            String t = lines.get(i).trim();
+            if (t.startsWith("[") && t.endsWith("]")) { secEnd = i; break; }
+        }
+        for (int i = secStart + 1; i < secEnd; i++) {
+            String t = lines.get(i).trim();
+            int eq = t.indexOf('=');
+            String k = eq >= 0 ? t.substring(0, eq).trim() : t;
+            if (k.equals(key)) {
+                lines.set(i, newLine);
+                return joinLines(lines);
             }
+        }
+        lines.add(secEnd, newLine);
+        return joinLines(lines);
+    }
+
+    private static String joinLines(List<String> lines) {
+        StringBuilder sb = new StringBuilder();
+        for (String l : lines) sb.append(l).append('\n');
+        return sb.toString();
+    }
+
+    private static String readText(File f) throws IOException {
+        try (InputStream in = new FileInputStream(f)) {
+            java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+            return bos.toString("UTF-8");
+        }
+    }
+
+    private static void writeText(File f, String text) throws IOException {
+        try (OutputStream out = new FileOutputStream(f)) {
+            out.write(text.getBytes(StandardCharsets.UTF_8));
         }
     }
 }
