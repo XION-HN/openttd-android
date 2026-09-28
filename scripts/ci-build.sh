@@ -30,6 +30,12 @@ esac
 
 mkdir -p "$WORK"
 
+# 交叉编译时必须让 pkg-config 看不到宿主机的库（否则 ICU 会误命中，
+# 把 /usr/include + NOTFOUND 库链进 openttd_lib）。
+export PKG_CONFIG_LIBDIR="$WORK/empty-pkgconfig"
+export PKG_CONFIG_PATH=""
+mkdir -p "$PKG_CONFIG_LIBDIR"
+
 echo "==================== 1/5 OpenTTD 源码 + 补丁 ===================="
 if [ ! -d "$WORK/OpenTTD/.git" ]; then
     git clone --depth 1 --branch "$OTTD_VER" https://github.com/OpenTTD/OpenTTD.git "$WORK/OpenTTD"
@@ -87,7 +93,6 @@ cmake -S "$WORK/OpenTTD" -B "$CLIENT_DIR" -G Ninja \
     -DFREETYPE_LIBRARY="$FT_PREFIX/lib/libfreetype.a" \
     -DFREETYPE_INCLUDE_DIRS="$FT_PREFIX/include/freetype2" \
     -DOPTION_DEDICATED=OFF -DHOST_BINARY_DIR="$HOST_TOOLS" \
-    -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON \
     -DPERSONAL_DIR=".openttd" -DGLOBAL_DIR="(not set)" -DSHARED_DIR="(not set)"
 cmake --build "$CLIENT_DIR" --target openttd -j "$JOBS"
 
