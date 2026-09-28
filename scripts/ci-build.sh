@@ -87,6 +87,7 @@ cmake -S "$WORK/OpenTTD" -B "$CLIENT_DIR" -G Ninja \
     -DFREETYPE_LIBRARY="$FT_PREFIX/lib/libfreetype.a" \
     -DFREETYPE_INCLUDE_DIRS="$FT_PREFIX/include/freetype2" \
     -DOPTION_DEDICATED=OFF -DHOST_BINARY_DIR="$HOST_TOOLS" \
+    -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON \
     -DPERSONAL_DIR=".openttd" -DGLOBAL_DIR="(not set)" -DSHARED_DIR="(not set)"
 cmake --build "$CLIENT_DIR" --target openttd -j "$JOBS"
 
