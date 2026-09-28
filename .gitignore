@@ -1,0 +1,15 @@
+# 本地构建产物 / 依赖源码（CI 会重新下载编译）
+work/
+deps/
+build/
+*.log
+
+# Android 构建产物
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+
+# CI 生成的 native 库与资源
+android/app/src/main/jniLibs/
+android/app/src/main/assets/
