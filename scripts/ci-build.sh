@@ -41,11 +41,12 @@ if [ ! -d "$WORK/OpenTTD/.git" ]; then
     git clone --depth 1 --branch "$OTTD_VER" https://github.com/OpenTTD/OpenTTD.git "$WORK/OpenTTD"
 fi
 cd "$WORK/OpenTTD"
-if git apply --reverse --check "$ROOT/patches/openttd-android-15.3.patch" 2>/dev/null; then
-    echo "补丁已应用"
-else
-    git apply "$ROOT/patches/openttd-android-15.3.patch"
-fi
+# 缓存里可能是打过补丁/编译过的树：先强制回到干净 tag，再打补丁。
+git checkout -f "$OTTD_VER" -- 2>/dev/null || true
+git reset --hard "$OTTD_VER"
+git clean -fdx
+git apply "$ROOT/patches/openttd-android-15.3.patch"
+echo "补丁已应用: $(git status --short | wc -l) 个文件被修改"
 
 echo "==================== 2/5 宿主工具（strgen 等） ===================="
 HOST_TOOLS="$WORK/build/host-tools"
