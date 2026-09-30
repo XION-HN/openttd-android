@@ -43,11 +43,12 @@ import java.util.Locale;
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 7)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 8)";
     private static final String ASSET_ROOT = "data";
-    private static final String ASSET_VERSION = "15.3-6";
+    private static final String ASSET_VERSION = "15.3-7";
     private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
-    private static final String TOWN_NAME_GRF = "chinese_town_names.grf";
+    private static final String TOWN_NAME_GRF = "Chinese_True_Town_Names.grf";
+    private static final String OLD_TOWN_NAME_GRF = "chinese_town_names.grf";
     private static final String PUBLIC_DATA_DIR = "OpenTTD";
 
     private static ParcelFileDescriptor sCrashPfd;
@@ -280,7 +281,8 @@ public class MainActivity extends SDLActivity {
             content = setIniKey(content, "misc", "medium_font", CJK_FONT);
             content = setIniKey(content, "misc", "large_font", CJK_FONT);
             content = setIniKey(content, "misc", "mono_font", CJK_FONT);
-            // 内置中国地名 NewGRF：默认加入新游戏，并使用它作为地名生成器
+            // 内置 Chinese True Town Names：默认加入新游戏，并使用它作为地名生成器
+            content = removeIniKey(content, "newgrf", OLD_TOWN_NAME_GRF);
             content = setIniKey(content, "newgrf", TOWN_NAME_GRF, null);
             content = setIniKey(content, "game_creation", "town_name", "21");
             writeText(cfg, content);
@@ -322,6 +324,30 @@ public class MainActivity extends SDLActivity {
             }
         }
         lines.add(secEnd, newLine);
+        return joinLines(lines);
+    }
+
+    /** 删除 ini 某个 section 下的 key（存在才删）。 */
+    private static String removeIniKey(String content, String section, String key) {
+        List<String> lines = new ArrayList<>();
+        for (String l : content.split("\\r?\\n", -1)) lines.add(l);
+        String header = "[" + section + "]";
+        int secStart = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).trim().equalsIgnoreCase(header)) { secStart = i; break; }
+        }
+        if (secStart < 0) return content;
+        int secEnd = lines.size();
+        for (int i = secStart + 1; i < lines.size(); i++) {
+            String t = lines.get(i).trim();
+            if (t.startsWith("[") && t.endsWith("]")) { secEnd = i; break; }
+        }
+        for (int i = secEnd - 1; i > secStart; i--) {
+            String t = lines.get(i).trim();
+            int eq = t.indexOf('=');
+            String k = eq >= 0 ? t.substring(0, eq).trim() : t;
+            if (k.equals(key)) lines.remove(i);
+        }
         return joinLines(lines);
     }
 

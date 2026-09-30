@@ -113,9 +113,10 @@ cp -a "$CLIENT_DIR/baseset/." "$AND/assets/data/baseset/"
 cp "$ROOT/font/OpenTTD-CJK.otf" "$AND/assets/data/baseset/OpenTTD-CJK.otf"
 cp "$CLIENT_DIR/lang/"*.lng "$AND/assets/data/lang/"
 
-# 内置中国地名 NewGRF
+# 内置 Chinese True Town Names NewGRF
 mkdir -p "$AND/assets/data/newgrf"
-cp "$ROOT"/newgrf-src/*.grf "$AND/assets/data/newgrf/"
+cp "$ROOT"/newgrf/*.grf "$AND/assets/data/newgrf/"
+[ -f "$ROOT/newgrf/license.txt" ] && cp "$ROOT/newgrf/license.txt" "$AND/assets/data/newgrf/Chinese_True_Town_Names-license.txt"
 
 # OpenGFX 图形集
 if [ ! -f "$WORK/opengfx/opengfx-$OPENGFX_VER/opengfx.obg" ]; then
