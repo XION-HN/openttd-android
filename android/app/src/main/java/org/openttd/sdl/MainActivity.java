@@ -43,9 +43,9 @@ import java.util.Locale;
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 8)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 9)";
     private static final String ASSET_ROOT = "data";
-    private static final String ASSET_VERSION = "15.3-7";
+    private static final String ASSET_VERSION = "15.3-8";
     private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
     private static final String TOWN_NAME_GRF = "Chinese_True_Town_Names.grf";
     private static final String OLD_TOWN_NAME_GRF = "chinese_town_names.grf";
@@ -101,6 +101,16 @@ public class MainActivity extends SDLActivity {
 
         super.onCreate(savedInstanceState);
         logLine("super.onCreate returned");
+
+        // 后台做个 DNS+TCP 自检（联网模组下载依赖内容服务器）
+        new Thread(() -> {
+            try (java.net.Socket socket = new java.net.Socket()) {
+                socket.connect(new java.net.InetSocketAddress("content.openttd.org", 3978), 8000);
+                logLine("[net] content.openttd.org:3978 OK");
+            } catch (Throwable t) {
+                logLine("[net] check failed: " + t);
+            }
+        }, "ottd-netcheck").start();
 
         maybeAskForStoragePermission();
     }

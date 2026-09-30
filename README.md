@@ -32,8 +32,11 @@ cd android && ./gradlew assembleDebug
 ## 当前状态
 - ✅ 能进主菜单
 - ✅ OpenGFX 8.0 图形集内置
-- ✅ 中文界面（FreeType + CJK 字体）
-- ⏳ 触摸操作 / 缩放手势 / 存档目录 UI 仍在打磨
+- ✅ 中文界面（FreeType + CJK 字体，12929 字符：GB2312 全字 + 中文符号/全角/箭头等）
+- ✅ 内置 Chinese True Town Names（zbx1425）并设为新游戏默认地名
+- ✅ 存档/配置在 /sdcard/OpenTTD（需「所有文件访问权限」）
+- ✅ 联网内容下载：已加 INTERNET 权限；无 libcurl 时自动走 OpenTTD 的 TCP fallback 下载通道
+- ⏳ 触摸操作 / 缩放手势 仍在打磨
 
 ## 许可
 OpenTTD 本体为 GPLv2。`font/OpenTTD-CJK.otf` 来自 Noto Sans CJK（SIL OFL 1.1）。
