@@ -43,7 +43,7 @@ import java.util.Locale;
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 10)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 11)";
     private static final String ASSET_ROOT = "data";
     private static final String ASSET_VERSION = "15.3-8";
     private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
@@ -286,14 +286,18 @@ public class MainActivity extends SDLActivity {
         try {
             File cfg = new File(sDataDir, "openttd.cfg");
             String content = cfg.isFile() ? readText(cfg) : "";
+            // 32bpp 画质模组需要 32bpp blitter
+            content = setIniKey(content, "misc", "blitter", "32bpp-optimized");
             content = setIniKey(content, "misc", "language", "simplified_chinese.lng");
             content = setIniKey(content, "misc", "small_font", CJK_FONT);
             content = setIniKey(content, "misc", "medium_font", CJK_FONT);
             content = setIniKey(content, "misc", "large_font", CJK_FONT);
             content = setIniKey(content, "misc", "mono_font", CJK_FONT);
             // 内置 Chinese True Town Names：默认加入新游戏，并使用它作为地名生成器
-            content = removeIniKey(content, "newgrf", OLD_TOWN_NAME_GRF);
-            content = setIniKey(content, "newgrf", TOWN_NAME_GRF, null);
+            content = removeIniKeyContaining(content, "newgrf", OLD_TOWN_NAME_GRF);
+            if (!hasIniKeyNamed(content, "newgrf", TOWN_NAME_GRF)) {
+                content = setIniKey(content, "newgrf", TOWN_NAME_GRF, null);
+            }
             content = setIniKey(content, "game_creation", "town_name", "21");
             writeText(cfg, content);
             logLine("cfg: zh-CN + CJK font + town name grf");
@@ -334,6 +338,42 @@ public class MainActivity extends SDLActivity {
             }
         }
         lines.add(secEnd, newLine);
+        return joinLines(lines);
+    }
+
+    /** ini 某个 section 下是否有名为 filename、或以 "|filename" 结尾的 key。 */
+    private static boolean hasIniKeyNamed(String content, String section, String filename) {
+        boolean in = false;
+        for (String l : content.split("\\r?\\n", -1)) {
+            String t = l.trim();
+            if (t.equalsIgnoreCase("[" + section + "]")) { in = true; continue; }
+            if (in && t.startsWith("[") && t.endsWith("]")) break;
+            if (!in) continue;
+            int eq = t.indexOf('=');
+            String k = eq >= 0 ? t.substring(0, eq).trim() : t;
+            if (k.equals(filename) || k.endsWith("|" + filename)) return true;
+        }
+        return false;
+    }
+
+    /** 删除 ini 某个 section 下所有“包含”指定文本的 key。 */
+    private static String removeIniKeyContaining(String content, String section, String needle) {
+        List<String> lines = new ArrayList<>();
+        for (String l : content.split("\\r?\\n", -1)) lines.add(l);
+        String header = "[" + section + "]";
+        int secStart = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).trim().equalsIgnoreCase(header)) { secStart = i; break; }
+        }
+        if (secStart < 0) return content;
+        int secEnd = lines.size();
+        for (int i = secStart + 1; i < lines.size(); i++) {
+            String t = lines.get(i).trim();
+            if (t.startsWith("[") && t.endsWith("]")) { secEnd = i; break; }
+        }
+        for (int i = secEnd - 1; i > secStart; i--) {
+            if (lines.get(i).contains(needle)) lines.remove(i);
+        }
         return joinLines(lines);
     }
 

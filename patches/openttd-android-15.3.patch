@@ -87,10 +87,20 @@ index 4c87f08..e558999 100644
  # include <fcntl.h>
  #endif
 diff --git a/src/newgrf_gui.cpp b/src/newgrf_gui.cpp
-index e089832..eb7f570 100644
+index e089832..56817c3 100644
 --- a/src/newgrf_gui.cpp
 +++ b/src/newgrf_gui.cpp
-@@ -1952,6 +1952,15 @@ static void NewGRFConfirmationCallback(Window *w, bool confirmed)
+@@ -669,6 +669,9 @@ struct NewGRFWindow : public Window, NewGRFScanCallback {
+ 			CopyGRFConfigList(this->orig_list, this->actives, true);
+ 			ResetGRFConfig(false);
+ 			ReloadNewGRFData();
++
++			/* 关窗口自动应用改动时立刻落盘；手机端进程常被系统杀掉，不会走正常退出保存。 */
++			SaveToConfig();
+ 		}
+ 
+ 		this->Window::Close();
+@@ -1952,6 +1955,15 @@ static void NewGRFConfirmationCallback(Window *w, bool confirmed)
  
  		ReInitAllWindows(false);
  		CloseWindowByClass(WC_BUILD_OBJECT);
