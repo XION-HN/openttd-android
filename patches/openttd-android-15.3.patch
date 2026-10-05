@@ -86,6 +86,26 @@ index 4c87f08..e558999 100644
  # include <unistd.h>
  # include <fcntl.h>
  #endif
+diff --git a/src/newgrf_gui.cpp b/src/newgrf_gui.cpp
+index e089832..eb7f570 100644
+--- a/src/newgrf_gui.cpp
++++ b/src/newgrf_gui.cpp
+@@ -1952,6 +1952,15 @@ static void NewGRFConfirmationCallback(Window *w, bool confirmed)
+ 
+ 		ReInitAllWindows(false);
+ 		CloseWindowByClass(WC_BUILD_OBJECT);
++
++		/* Android/手机端进程常被系统直接回收，不会走正常退出流程；
++		 * 这里在“应用更改”后立刻把 NewGRF 列表写入 openttd.cfg，避免重启后激活状态丢失。 */
++		/* 游戏内修改的列表也同步成“新游戏默认列表”，这样下次新开档同样带这些模组。 */
++		if (&nw->orig_list == &_grfconfig) {
++			CopyGRFConfigList(_grfconfig_newgame, nw->actives, false);
++		}
++
++		SaveToConfig();
+ 	}
+ }
+ 
 diff --git a/src/os/unix/CMakeLists.txt b/src/os/unix/CMakeLists.txt
 index d5cdcfd..a77a9fa 100644
 --- a/src/os/unix/CMakeLists.txt
