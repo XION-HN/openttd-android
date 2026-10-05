@@ -13,6 +13,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 
 SDL2_PREFIX="${SDL2_PREFIX:-$OTTD_DEPS/sdl2-$NDK_ABI}"
 FT_PREFIX="${FT_PREFIX:-$OTTD_DEPS/freetype-$NDK_ABI}"
+XZ_PREFIX="${XZ_PREFIX:-$OTTD_DEPS/xz-$NDK_ABI}"
 HOST_TOOLS="$OTTD_BUILD/host-tools"
 CLIENT_DIR="${CLIENT_DIR:-$OTTD_BUILD/client-$NDK_ABI}"
 JOBS="${JOBS:-$(nproc 2>/dev/null || echo 2)}"
@@ -36,10 +37,12 @@ cmake -S "$OTTD_SRC" -B "$CLIENT_DIR" -G Ninja \
     -DANDROID_PLATFORM="$NDK_PLATFORM" \
     -DANDROID_STL=c++_shared \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="$SDL2_PREFIX;$FT_PREFIX" \
+    -DCMAKE_PREFIX_PATH="$SDL2_PREFIX;$FT_PREFIX;$XZ_PREFIX" \
     -DSDL2_DIR="$SDL2_PREFIX/lib/cmake/SDL2" \
     -DFREETYPE_LIBRARY="$FT_PREFIX/lib/libfreetype.a" \
     -DFREETYPE_INCLUDE_DIRS="$FT_PREFIX/include/freetype2" \
+    -DLIBLZMA_LIBRARY="$XZ_PREFIX/lib/liblzma.a" \
+    -DLIBLZMA_INCLUDE_DIR="$XZ_PREFIX/include" \
     -DOPTION_DEDICATED=OFF \
     -DHOST_BINARY_DIR="$HOST_TOOLS" \
     -DPERSONAL_DIR=".openttd" \

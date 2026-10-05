@@ -116,6 +116,20 @@ index e089832..56817c3 100644
  	}
  }
  
+diff --git a/src/openttd.cpp b/src/openttd.cpp
+index 7d585b0..9011f56 100644
+--- a/src/openttd.cpp
++++ b/src/openttd.cpp
+@@ -751,6 +751,9 @@ int openttd_main(std::span<std::string_view> arguments)
+ 				UserError("Failed to autoprobe blitter") :
+ 				UserError("Failed to select requested blitter '{}'; does it exist?", blitter);
+ 		}
++
++	/* Android 诊断：输出实际选中的 blitter（会进入崩溃日志）。 */
++	fmt::print(stderr, "[blitter] selected: {}\n", BlitterFactory::GetCurrentBlitter() != nullptr ? BlitterFactory::GetCurrentBlitter()->GetName() : "(none)");
+ 	}
+ 
+ 	if (videodriver.empty() && !_ini_videodriver.empty()) videodriver = _ini_videodriver;
 diff --git a/src/os/unix/CMakeLists.txt b/src/os/unix/CMakeLists.txt
 index d5cdcfd..a77a9fa 100644
 --- a/src/os/unix/CMakeLists.txt

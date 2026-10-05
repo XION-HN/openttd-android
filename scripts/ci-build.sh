@@ -12,6 +12,7 @@ API="${API:-24}"
 OTTD_VER="${OTTD_VER:-15.3}"
 SDL2_REF="${SDL2_REF:-release-2.32.10}"
 FT_REF="${FT_REF:-VER-2-13-3}"
+XZ_VER="${XZ_VER:-5.6.3}"
 OPENGFX_VER="${OPENGFX_VER:-8.0}"
 JOBS="${JOBS:-$(nproc)}"
 
@@ -83,16 +84,35 @@ cmake -S "$FT_SRC" -B "$WORK/build/freetype-$ABI" -G Ninja \
 cmake --build "$WORK/build/freetype-$ABI" -j "$JOBS"
 cmake --install "$WORK/build/freetype-$ABI"
 
+echo "==================== 4.5/5 liblzma for Android ===================="
+XZ_SRC="$WORK/xz"
+XZ_PREFIX="$WORK/deps/xz-$ABI"
+if [ ! -d "$XZ_SRC/src/liblzma" ]; then
+    mkdir -p "$WORK"
+    curl -fL --retry 3 -o "$WORK/xz.tar.gz" "https://codeload.github.com/tukaani-project/xz/tar.gz/refs/tags/v$XZ_VER"
+    rm -rf "$XZ_SRC"; mkdir -p "$XZ_SRC"
+    tar -xzf "$WORK/xz.tar.gz" -C "$XZ_SRC" --strip-components=1
+fi
+cmake -S "$XZ_SRC" -B "$WORK/build/xz-$ABI" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
+    -DANDROID_ABI="$ABI" -DANDROID_PLATFORM="android-$API" -DANDROID_STL=c++_shared \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$XZ_PREFIX" \
+    -DBUILD_SHARED_LIBS=OFF -DENABLE_NLS=OFF -DLZIP_DECODER=OFF
+cmake --build "$WORK/build/xz-$ABI" -j "$JOBS"
+cmake --install "$WORK/build/xz-$ABI"
+
 echo "==================== 5/5 OpenTTD 客户端 ===================="
 CLIENT_DIR="$WORK/build/client-$ABI"
 cmake -S "$WORK/OpenTTD" -B "$CLIENT_DIR" -G Ninja \
     -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
     -DANDROID_ABI="$ABI" -DANDROID_PLATFORM="android-$API" -DANDROID_STL=c++_shared \
     -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_PREFIX_PATH="$SDL2_PREFIX;$FT_PREFIX" \
+    -DCMAKE_PREFIX_PATH="$SDL2_PREFIX;$FT_PREFIX;$XZ_PREFIX" \
     -DSDL2_DIR="$SDL2_PREFIX/lib/cmake/SDL2" \
     -DFREETYPE_LIBRARY="$FT_PREFIX/lib/libfreetype.a" \
     -DFREETYPE_INCLUDE_DIRS="$FT_PREFIX/include/freetype2" \
+    -DLIBLZMA_LIBRARY="$XZ_PREFIX/lib/liblzma.a" \
+    -DLIBLZMA_INCLUDE_DIR="$XZ_PREFIX/include" \
     -DOPTION_DEDICATED=OFF -DHOST_BINARY_DIR="$HOST_TOOLS" \
     -DPERSONAL_DIR=".openttd" -DGLOBAL_DIR="(not set)" -DSHARED_DIR="(not set)"
 cmake --build "$CLIENT_DIR" --target openttd -j "$JOBS"
