@@ -43,9 +43,9 @@ import java.util.Locale;
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 12)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 13)";
     private static final String ASSET_ROOT = "data";
-    private static final String ASSET_VERSION = "15.3-8";
+    private static final String ASSET_VERSION = "15.3-9";
     private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
     private static final String TOWN_NAME_GRF = "Chinese_True_Town_Names.grf";
     private static final String OLD_TOWN_NAME_GRF = "chinese_town_names.grf";
@@ -75,6 +75,12 @@ public class MainActivity extends SDLActivity {
         }
 
         try {
+            boolean first = !assetsUpToDate();
+            if (first) {
+                try {
+                    android.widget.Toast.makeText(this, "首次启动：正在解压 32bpp 图形资源，请稍候…", android.widget.Toast.LENGTH_LONG).show();
+                } catch (Throwable ignored) { }
+            }
             extractAssetsIfNeeded();
             logLine("assets extracted/up-to-date");
             File gf = new File(sDataDir, "baseset/OpenGFX/opengfx.obg");
@@ -112,48 +118,15 @@ public class MainActivity extends SDLActivity {
             }
         }, "ottd-netcheck").start();
 
-        maybeAskForStoragePermission();
     }
 
     // --------------------------------------------------------------- storage
 
+    /** 一律使用 Android/data/<pkg>/files/OpenTTD（app 私有外部目录，免权限）。 */
     private File resolveDataDir() {
-        boolean granted = false;
-        if (Build.VERSION.SDK_INT >= 30) {
-            granted = Environment.isExternalStorageManager();
-        } else {
-            granted = checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        }
-        if (granted) {
-            return new File(Environment.getExternalStorageDirectory(), PUBLIC_DATA_DIR);
-        }
         File ext = getExternalFilesDir(null);
         if (ext != null) return new File(ext, PUBLIC_DATA_DIR);
         return new File(getFilesDir(), ".openttd");
-    }
-
-    private void maybeAskForStoragePermission() {
-        if (Build.VERSION.SDK_INT < 30) return;
-        if (Environment.isExternalStorageManager()) return;
-        try {
-            new AlertDialog.Builder(this)
-                    .setTitle("存档目录 / Storage")
-                    .setMessage("授予「所有文件访问权限」后，OpenTTD 的存档与配置会放在 /sdcard/OpenTTD，方便用文件管理器管理；\n\n授权后请重新打开 OpenTTD。未授权时会暂存在 Android/data 目录。")
-                    .setPositiveButton("去授权", (d, w) -> {
-                        try {
-                            startActivity(new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                    Uri.parse("package:" + getPackageName())));
-                        } catch (Throwable t) {
-                            try {
-                                startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
-                            } catch (Throwable ignored) { }
-                        }
-                    })
-                    .setNegativeButton("稍后", null)
-                    .show();
-        } catch (Throwable t) {
-            logLine("storage dialog failed: " + t);
-        }
     }
 
     // ---------------------------------------------------------------- crash log
@@ -272,11 +245,19 @@ public class MainActivity extends SDLActivity {
         if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
             throw new IOException("cannot create dir: " + parent);
         }
-        try (InputStream in = getAssets().open(assetPath);
-             OutputStream out = new FileOutputStream(target)) {
+        InputStream raw = getAssets().open(assetPath);
+        InputStream in = raw;
+        File output = target;
+        if (assetPath.endsWith(".tar.gz")) {
+            // 基础图形集是 .tar.gz；OpenTTD 只扫 .tar，这里流式解压成 .tar
+            in = new java.util.zip.GZIPInputStream(raw);
+            String path = target.getAbsolutePath();
+            output = new File(path.substring(0, path.length() - 3));
+        }
+        try (InputStream fin = in; OutputStream out = new FileOutputStream(output)) {
             byte[] buf = new byte[64 * 1024];
             int n;
-            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+            while ((n = fin.read(buf)) > 0) out.write(buf, 0, n);
         }
     }
 
@@ -299,6 +280,8 @@ public class MainActivity extends SDLActivity {
                 content = setIniKey(content, "newgrf", TOWN_NAME_GRF, null);
             }
             content = setIniKey(content, "game_creation", "town_name", "21");
+            // 默认使用内置的 32bpp 基础图形集 aBase
+            content = setIniKey(content, "graphicsset", "graphicsset", "aBase");
             writeText(cfg, content);
             logLine("cfg: zh-CN + CJK font + town name grf");
         } catch (Throwable t) {

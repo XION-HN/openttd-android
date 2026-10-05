@@ -133,6 +133,14 @@ cp -a "$CLIENT_DIR/baseset/." "$AND/assets/data/baseset/"
 cp "$ROOT/font/OpenTTD-CJK.otf" "$AND/assets/data/baseset/OpenTTD-CJK.otf"
 cp "$CLIENT_DIR/lang/"*.lng "$AND/assets/data/lang/"
 
+# 内置 32bpp 基础图形集 abase（286MB，从 BaNaNaS CDN 拉取）
+ABASE_URL="https://bananas-cdn.openttd.org/base-graphics/61423332/9ce38653534d750ea3db211797133345/61423332-abase-0.1.2.tar.gz"
+ABASE_TAR="$WORK/abase-0.1.2.tar.gz"
+if [ ! -s "$ABASE_TAR" ] || [ "$(wc -c < "$ABASE_TAR")" -lt 200000000 ]; then
+    curl -fL --retry 3 -o "$ABASE_TAR" "$ABASE_URL"
+fi
+cp "$ABASE_TAR" "$AND/assets/data/baseset/abase-0.1.2.tar.gz"
+
 # 内置 Chinese True Town Names NewGRF
 mkdir -p "$AND/assets/data/newgrf"
 cp "$ROOT"/newgrf/*.grf "$AND/assets/data/newgrf/"
