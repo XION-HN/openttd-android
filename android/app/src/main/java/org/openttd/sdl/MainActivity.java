@@ -43,7 +43,7 @@ import java.util.Locale;
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 14)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 15)";
     private static final String ASSET_ROOT = "data";
     private static final String ASSET_VERSION = "15.3-10";
     private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";

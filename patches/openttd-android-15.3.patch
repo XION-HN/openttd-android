@@ -86,6 +86,70 @@ index 4c87f08..e558999 100644
  # include <unistd.h>
  # include <fcntl.h>
  #endif
+diff --git a/src/lang/english.txt b/src/lang/english.txt
+index 0b32a4a..2107900 100644
+--- a/src/lang/english.txt
++++ b/src/lang/english.txt
+@@ -414,6 +414,7 @@ STR_TOOLBAR_TOOLTIP_SHOW_SOUND_MUSIC_WINDOW                     :{BLACK}Open sou
+ STR_TOOLBAR_TOOLTIP_SHOW_LAST_MESSAGE_NEWS                      :{BLACK}Open last message/news report, messages history or delete all messages
+ STR_TOOLBAR_TOOLTIP_LAND_BLOCK_INFORMATION                      :{BLACK}Open land information, screenshot menu, OpenTTD credits, or developer tools
+ STR_TOOLBAR_TOOLTIP_SWITCH_TOOLBAR                              :{BLACK}Switch toolbars
++STR_TOOLBAR_TOOLTIP_TOUCH_LR                              :{BLACK}Touch mouse button (left/right)
+ 
+ # Extra tooltips for the scenario editor toolbar
+ STR_SCENEDIT_TOOLBAR_SAVE_SCENARIO_LOAD_SCENARIO_TOOLTIP        :{BLACK}Save scenario, load scenario, abandon scenario editor, exit
+@@ -1725,6 +1726,19 @@ STR_CONFIG_SETTING_OSK_ACTIVATION_DISABLED                      :Disabled
+ STR_CONFIG_SETTING_OSK_ACTIVATION_DOUBLE_CLICK                  :Double click
+ STR_CONFIG_SETTING_OSK_ACTIVATION_SINGLE_CLICK_FOCUS            :Single click (when focussed)
+ STR_CONFIG_SETTING_OSK_ACTIVATION_SINGLE_CLICK                  :Single click (immediately)
++STR_CONFIG_SETTING_TOUCH_MODE                                  :Touch controls: {STRING}
++STR_CONFIG_SETTING_TOUCH_MODE_HELPTEXT                         :Enable touch gestures. Tap to click, drag to pan the map, long press for a right click and pinch to zoom.
++STR_CONFIG_SETTING_TOUCH_PRIMARY_RIGHT                         :Touch primary mouse button: {STRING}
++STR_CONFIG_SETTING_TOUCH_PRIMARY_RIGHT_HELPTEXT                :Which mouse button is used when tapping the screen. Can also be toggled with the button in the top toolbar.
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS                            :Long press for right click: {STRING}
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS_HELPTEXT                   :Trigger a right click when holding one finger still on the screen.
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS_MS                         :Long press duration: {NUM} ms
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS_MS_HELPTEXT                :How long a finger must be held still before it counts as a long press.
++STR_CONFIG_SETTING_TOUCH_PAN_PLACING                           :Two-finger pan while placing: {STRING}
++STR_CONFIG_SETTING_TOUCH_PAN_PLACING_HELPTEXT                  :Allow panning the map with two fingers while a building tool is active.
++STR_CONFIG_SETTING_TOUCH_SYSTEM_KEYBOARD                       :System on-screen keyboard: {STRING}
++STR_CONFIG_SETTING_TOUCH_SYSTEM_KEYBOARD_HELPTEXT              :Show the system on-screen keyboard when a text box is focused. The in-game on-screen keyboard is controlled by the "On screen keyboard" setting.
++
+ 
+ STR_CONFIG_SETTING_USE_RELAY_SERVICE                            :Use relay service: {STRING2}
+ STR_CONFIG_SETTING_USE_RELAY_SERVICE_HELPTEXT                   :If creating a connection to the server fails, one can use a relay service to create a connection. "Never" disallows this, "ask" will ask first, "allow" will allow it without asking
+diff --git a/src/lang/simplified_chinese.txt b/src/lang/simplified_chinese.txt
+index f48d016..a9d031f 100644
+--- a/src/lang/simplified_chinese.txt
++++ b/src/lang/simplified_chinese.txt
+@@ -414,6 +414,7 @@ STR_TOOLBAR_TOOLTIP_SHOW_SOUND_MUSIC_WINDOW                     :{BLACK}显示
+ STR_TOOLBAR_TOOLTIP_SHOW_LAST_MESSAGE_NEWS                      :{BLACK}显示最新消息、新闻，消息历史或删除所有消息
+ STR_TOOLBAR_TOOLTIP_LAND_BLOCK_INFORMATION                      :{BLACK}查询地块信息、截图、关于 OpenTTD 和开发者工具
+ STR_TOOLBAR_TOOLTIP_SWITCH_TOOLBAR                              :{BLACK}切换工具栏
++STR_TOOLBAR_TOOLTIP_TOUCH_LR                              :{BLACK}触摸鼠标键（左/右）
+ 
+ # Extra tooltips for the scenario editor toolbar
+ STR_SCENEDIT_TOOLBAR_SAVE_SCENARIO_LOAD_SCENARIO_TOOLTIP        :{BLACK}保存场景、读取场景、放弃场景、退出
+@@ -1724,6 +1725,19 @@ STR_CONFIG_SETTING_OSK_ACTIVATION_HELPTEXT                      :当输入文本
+ STR_CONFIG_SETTING_OSK_ACTIVATION_DISABLED                      :禁止
+ STR_CONFIG_SETTING_OSK_ACTIVATION_DOUBLE_CLICK                  :双击
+ STR_CONFIG_SETTING_OSK_ACTIVATION_SINGLE_CLICK_FOCUS            :单击（当前焦点）
++STR_CONFIG_SETTING_TOUCH_MODE                                  :触屏操作：{STRING}
++STR_CONFIG_SETTING_TOUCH_MODE_HELPTEXT                         :启用触屏手势。轻点即点击，拖动可平移地图，长按为右键，双指捏合缩放。
++STR_CONFIG_SETTING_TOUCH_PRIMARY_RIGHT                         :触摸默认鼠标键：{STRING}
++STR_CONFIG_SETTING_TOUCH_PRIMARY_RIGHT_HELPTEXT                :轻点屏幕时使用哪个鼠标键。也可以用顶部工具栏最左边的按钮切换。
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS                            :长按出右键：{STRING}
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS_HELPTEXT                   :一根手指按住不动时触发右键。
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS_MS                         :长按时间：{NUM} 毫秒
++STR_CONFIG_SETTING_TOUCH_LONG_PRESS_MS_HELPTEXT                :按下后多久算作长按。
++STR_CONFIG_SETTING_TOUCH_PAN_PLACING                           :建造时双指平移地图：{STRING}
++STR_CONFIG_SETTING_TOUCH_PAN_PLACING_HELPTEXT                  :放置建筑工具激活时，是否允许用两根手指平移地图。
++STR_CONFIG_SETTING_TOUCH_SYSTEM_KEYBOARD                       :系统屏幕键盘：{STRING}
++STR_CONFIG_SETTING_TOUCH_SYSTEM_KEYBOARD_HELPTEXT              :文本框获得焦点时是否弹出系统屏幕键盘。游戏内置屏幕键盘由“屏幕键盘”设置控制。
++
+ STR_CONFIG_SETTING_OSK_ACTIVATION_SINGLE_CLICK                  :单击（立即）
+ 
+ STR_CONFIG_SETTING_USE_RELAY_SERVICE                            :使用中继服务：{STRING}
 diff --git a/src/newgrf_gui.cpp b/src/newgrf_gui.cpp
 index e089832..56817c3 100644
 --- a/src/newgrf_gui.cpp
@@ -485,3 +549,535 @@ index 93b57fa..5d381d5 100644
  	SetRandomSeed(time(nullptr));
  
  	signal(SIGPIPE, SIG_IGN);
+diff --git a/src/settings_type.h b/src/settings_type.h
+index 7a07d0d..68ac851 100644
+--- a/src/settings_type.h
++++ b/src/settings_type.h
+@@ -178,6 +178,15 @@ struct GUISettings {
+ 	uint8_t  linkgraph_colours;                ///< linkgraph overlay colours
+ 	uint8_t  scroll_mode;                      ///< viewport scroll mode
+ 	bool   smooth_scroll;                    ///< smooth scroll viewports
++#ifdef __ANDROID__
++	/* Touch controls (Android). */
++	bool     touch_mode;                     ///< Enable touch gesture controls.
++	bool     touch_primary_right;            ///< Tap uses the right mouse button.
++	bool     touch_long_press;               ///< Long press triggers a right click.
++	uint16_t touch_long_press_ms;            ///< Long press threshold in milliseconds.
++	bool     touch_pan_while_placing;        ///< Allow two-finger map panning while placing.
++	bool     touch_system_keyboard;          ///< Show the system on-screen keyboard for text input.
++#endif
+ 	bool   measure_tooltip;                  ///< show a permanent tooltip when dragging tools
+ 	uint8_t liveries;                         ///< options for displaying company liveries, 0=none, 1=self, 2=all
+ 	bool   prefer_teamchat;                  ///< choose the chat message target with \<ENTER\>, true=all clients, false=your team
+diff --git a/src/table/settings/gui_settings.ini b/src/table/settings/gui_settings.ini
+index 6989729..e3d13f8 100644
+--- a/src/table/settings/gui_settings.ini
++++ b/src/table/settings/gui_settings.ini
+@@ -134,6 +134,64 @@ def      = true
+ str      = STR_CONFIG_SETTING_SMOOTH_SCROLLING
+ strhelp  = STR_CONFIG_SETTING_SMOOTH_SCROLLING_HELPTEXT
+ 
++[SDTC_BOOL]
++ifdef    = __ANDROID__
++var      = gui.touch_mode
++flags    = SettingFlag::NotInSave, SettingFlag::NoNetworkSync
++def      = true
++str      = STR_CONFIG_SETTING_TOUCH_MODE
++strhelp  = STR_CONFIG_SETTING_TOUCH_MODE_HELPTEXT
++cat      = SC_BASIC
++
++[SDTC_BOOL]
++ifdef    = __ANDROID__
++var      = gui.touch_primary_right
++flags    = SettingFlag::NotInSave, SettingFlag::NoNetworkSync
++def      = false
++str      = STR_CONFIG_SETTING_TOUCH_PRIMARY_RIGHT
++strhelp  = STR_CONFIG_SETTING_TOUCH_PRIMARY_RIGHT_HELPTEXT
++cat      = SC_BASIC
++
++[SDTC_BOOL]
++ifdef    = __ANDROID__
++var      = gui.touch_long_press
++flags    = SettingFlag::NotInSave, SettingFlag::NoNetworkSync
++def      = true
++str      = STR_CONFIG_SETTING_TOUCH_LONG_PRESS
++strhelp  = STR_CONFIG_SETTING_TOUCH_LONG_PRESS_HELPTEXT
++cat      = SC_BASIC
++
++[SDTC_VAR]
++ifdef    = __ANDROID__
++var      = gui.touch_long_press_ms
++type     = SLE_UINT16
++flags    = SettingFlag::NotInSave, SettingFlag::NoNetworkSync
++def      = 400
++min      = 150
++max      = 1500
++str      = STR_CONFIG_SETTING_TOUCH_LONG_PRESS_MS
++strhelp  = STR_CONFIG_SETTING_TOUCH_LONG_PRESS_MS_HELPTEXT
++cat      = SC_EXPERT
++
++[SDTC_BOOL]
++ifdef    = __ANDROID__
++var      = gui.touch_pan_while_placing
++flags    = SettingFlag::NotInSave, SettingFlag::NoNetworkSync
++def      = false
++str      = STR_CONFIG_SETTING_TOUCH_PAN_PLACING
++strhelp  = STR_CONFIG_SETTING_TOUCH_PAN_PLACING_HELPTEXT
++cat      = SC_EXPERT
++
++[SDTC_BOOL]
++ifdef    = __ANDROID__
++var      = gui.touch_system_keyboard
++flags    = SettingFlag::NotInSave, SettingFlag::NoNetworkSync
++def      = true
++str      = STR_CONFIG_SETTING_TOUCH_SYSTEM_KEYBOARD
++strhelp  = STR_CONFIG_SETTING_TOUCH_SYSTEM_KEYBOARD_HELPTEXT
++cat      = SC_BASIC
++
++
+ [SDTC_OMANY]
+ var      = gui.right_click_wnd_close
+ type     = SLE_UINT8
+diff --git a/src/toolbar_gui.cpp b/src/toolbar_gui.cpp
+index c86465e..086ad72 100644
+--- a/src/toolbar_gui.cpp
++++ b/src/toolbar_gui.cpp
+@@ -24,6 +24,7 @@
+ #include "road_gui.h"
+ #include "vehicle_func.h"
+ #include "sound_func.h"
++#include "settings_func.h"
+ #include "terraform_gui.h"
+ #include "strings_func.h"
+ #include "company_func.h"
+@@ -1770,6 +1771,9 @@ class NWidgetMainToolbarContainer : public NWidgetToolbarContainer {
+ 			WID_TN_SWITCH_BAR,
+ 		};
+ 		static const WidgetID arrange_all[] = {
++#ifdef __ANDROID__
++			WID_TN_TOUCH_LR,
++#endif
+ 			WID_TN_PAUSE,
+ 			WID_TN_FAST_FORWARD,
+ 			WID_TN_SETTINGS,
+@@ -1941,6 +1945,18 @@ class NWidgetScenarioToolbarContainer : public NWidgetToolbarContainer {
+ 
+ typedef CallBackFunction ToolbarButtonProc(Window *w);
+ 
++#ifdef __ANDROID__
++/** Android: toggle whether touch taps use the left or right mouse button. */
++static CallBackFunction ToolbarTouchToggleClick(Window *w)
++{
++_settings_client.gui.touch_primary_right = !_settings_client.gui.touch_primary_right;
++SaveToConfig();
++w->SetWidgetLoweredState(WID_TN_TOUCH_LR, _settings_client.gui.touch_primary_right);
++w->SetWidgetDirty(WID_TN_TOUCH_LR);
++return CBF_NONE;
++}
++#endif
++
+ static ToolbarButtonProc * const _toolbar_button_procs[] = {
+ 	ToolbarPauseClick,
+ 	ToolbarFastForwardClick,
+@@ -1973,6 +1989,11 @@ static ToolbarButtonProc * const _toolbar_button_procs[] = {
+ 	ToolbarNewspaperClick,
+ 	ToolbarHelpClick,
+ 	ToolbarSwitchClick,
++#ifdef __ANDROID__
++	ToolbarTouchToggleClick,
++#else
++	nullptr,
++#endif
+ };
+ 
+ /** Main toolbar. */
+@@ -2101,6 +2122,13 @@ struct MainToolbarWindow : Window {
+ 			this->ToggleWidgetLoweredState(WID_TN_FAST_FORWARD);
+ 			this->SetWidgetDirty(WID_TN_FAST_FORWARD);
+ 		}
++
++#ifdef __ANDROID__
++		if (this->IsWidgetLowered(WID_TN_TOUCH_LR) != _settings_client.gui.touch_primary_right) {
++			this->ToggleWidgetLoweredState(WID_TN_TOUCH_LR);
++			this->SetWidgetDirty(WID_TN_TOUCH_LR);
++		}
++#endif
+ 	}};
+ 
+ 	/**
+@@ -2160,6 +2188,9 @@ struct MainToolbarWindow : Window {
+ 
+ /** Sprites to use for the different toolbar buttons */
+ static constexpr std::tuple<WidgetID, WidgetType, SpriteID> _toolbar_button_sprites[] = {
++#ifdef __ANDROID__
++	{WID_TN_TOUCH_LR,     WWT_PUSHIMGBTN, SPR_IMG_SWITCH_TOOLBAR},
++#endif
+ 	{WID_TN_PAUSE,        WWT_IMGBTN,     SPR_IMG_PAUSE},
+ 	{WID_TN_FAST_FORWARD, WWT_IMGBTN,     SPR_IMG_FASTFORWARD},
+ 	{WID_TN_SETTINGS,     WWT_IMGBTN,     SPR_IMG_SETTINGS},
+@@ -2225,7 +2256,12 @@ static std::unique_ptr<NWidgetBase> MakeMainToolbar()
+ 				hor->Add(std::make_unique<NWidgetSpacer>(0, 0));
+ 				break;
+ 		}
+-		auto leaf = std::make_unique<NWidgetLeaf>(tp, COLOUR_GREY, widget, WidgetData{.sprite = sprite}, STR_TOOLBAR_TOOLTIP_PAUSE_GAME + widget);
++		#ifdef __ANDROID__
++StringID tooltip = (widget == WID_TN_TOUCH_LR) ? STR_TOOLBAR_TOOLTIP_TOUCH_LR : static_cast<StringID>(STR_TOOLBAR_TOOLTIP_PAUSE_GAME + widget);
++#else
++StringID tooltip = static_cast<StringID>(STR_TOOLBAR_TOOLTIP_PAUSE_GAME + widget);
++#endif
++auto leaf = std::make_unique<NWidgetLeaf>(tp, COLOUR_GREY, widget, WidgetData{.sprite = sprite}, tooltip);
+ 		leaf->SetToolbarMinimalSize(1);
+ 		hor->Add(std::move(leaf));
+ 	}
+diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
+index e31afce..132fd54 100644
+--- a/src/video/sdl2_v.cpp
++++ b/src/video/sdl2_v.cpp
+@@ -19,6 +19,8 @@
+ #include "../fileio_func.h"
+ #include "../framerate_type.h"
+ #include "../window_func.h"
++#include "../tilehighlight_func.h"
++#include "../viewport_func.h"
+ #include "sdl2_v.h"
+ #include <SDL.h>
+ #ifdef __EMSCRIPTEN__
+@@ -28,6 +30,265 @@
+ 
+ #include "../safeguards.h"
+ 
++#ifdef __ANDROID__
++/**
++ * Touch gesture handling for Android.
++ *
++ * The SDL Android backend normally synthesises left mouse events from touches.
++ * We disable that (SDL_HINT_TOUCH_MOUSE_EVENTS) and generate the mouse events
++ * ourselves so we can support right clicks, map panning, pinch zoom and the
++ * placement mode.
++ */
++struct TouchFingerState {
++bool active = false;
++SDL_FingerID id = 0;
++int x = 0;
++int y = 0;
++};
++
++static TouchFingerState _touch_fingers[2];
++static int _touch_count = 0;
++static SDL_FingerID _touch_main_id = 0;
++static int _touch_start_x = 0;
++static int _touch_start_y = 0;
++static int _touch_last_x = 0;
++static int _touch_last_y = 0;
++static uint32_t _touch_start_ticks = 0;
++static bool _touch_moved = false;             ///< Finger moved beyond the tap threshold.
++static bool _touch_long_press_fired = false;  ///< A long press already turned into a right click.
++static bool _touch_started_in_viewport = false;
++static bool _touch_pinch_active = false;
++static float _touch_pinch_last = 0.0f;
++
++static TouchFingerState *FindTouchFinger(SDL_FingerID id)
++{
++for (auto &f : _touch_fingers) {
++if (f.active && f.id == id) return &f;
++}
++return nullptr;
++}
++
++static TouchFingerState *AllocTouchFinger(SDL_FingerID id)
++{
++for (auto &f : _touch_fingers) {
++if (!f.active) {
++f.active = true;
++f.id = id;
++return &f;
++}
++}
++return nullptr;
++}
++
++static void ReleaseTouchFinger(SDL_FingerID id)
++{
++for (auto &f : _touch_fingers) {
++if (f.active && f.id == id) {
++f.active = false;
++return;
++}
++}
++}
++
++static void TouchGetPos(const SDL_TouchFingerEvent &e, int &x, int &y)
++{
++const int w = std::max(1, _screen.width);
++const int h = std::max(1, _screen.height);
++x = Clamp(static_cast<int>(e.x * w), 0, w - 1);
++y = Clamp(static_cast<int>(e.y * h), 0, h - 1);
++}
++
++static float TouchFingerDistance()
++{
++if (_touch_count < 2) return 0.0f;
++float dx = static_cast<float>(_touch_fingers[0].x - _touch_fingers[1].x);
++float dy = static_cast<float>(_touch_fingers[0].y - _touch_fingers[1].y);
++return std::sqrt(dx * dx + dy * dy);
++}
++
++static void TouchSendLeftClick(int x, int y)
++{
++_cursor.pos.x = x;
++_cursor.pos.y = y;
++_left_button_down = true;
++_left_button_clicked = false;
++HandleMouseEvents();
++_left_button_down = false;
++_left_button_clicked = false;
++HandleMouseEvents();
++}
++
++static void TouchSendRightClick(int x, int y)
++{
++_cursor.pos.x = x;
++_cursor.pos.y = y;
++_right_button_down = true;
++_right_button_clicked = true;
++HandleMouseEvents();
++_right_button_down = false;
++HandleMouseEvents();
++}
++
++/** Convert a pending long press into a right click. Called every frame. */
++static void UpdateTouchLongPress()
++{
++if (_touch_count != 1 || !_settings_client.gui.touch_long_press ||
++_touch_long_press_fired || _touch_moved || _touch_pinch_active) {
++return;
++}
++if (SDL_GetTicks() - _touch_start_ticks < _settings_client.gui.touch_long_press_ms) return;
++
++_touch_long_press_fired = true;
++if (_left_button_down) {
++_left_button_down = false;
++_left_button_clicked = false;
++}
++TouchSendRightClick(_touch_last_x, _touch_last_y);
++}
++
++static void HandleTouchEvent(const SDL_Event &ev)
++{
++const bool touch_mode = _settings_client.gui.touch_mode;
++
++switch (ev.type) {
++case SDL_FINGERDOWN: {
++if (_touch_count >= 2) break;
++TouchFingerState *f = AllocTouchFinger(ev.tfinger.fingerId);
++if (f == nullptr) break;
++TouchGetPos(ev.tfinger, f->x, f->y);
++_touch_count++;
++
++if (_touch_count == 1) {
++_touch_main_id = f->id;
++_touch_start_x = f->x;
++_touch_start_y = f->y;
++_touch_last_x = f->x;
++_touch_last_y = f->y;
++_touch_start_ticks = SDL_GetTicks();
++_touch_moved = false;
++_touch_long_press_fired = false;
++_touch_pinch_active = false;
++_touch_started_in_viewport = false;
++if (touch_mode) {
++Window *w = FindWindowFromPt(f->x, f->y);
++_touch_started_in_viewport = (w != nullptr && IsPtInWindowViewport(w, f->x, f->y) != nullptr);
++}
++} else {
++_touch_pinch_active = true;
++/* Cancel a single-finger drag before starting a pinch. */
++if (_right_button_down) { _right_button_down = false; HandleMouseEvents(); }
++if (_left_button_down) { _left_button_down = false; _left_button_clicked = false; HandleMouseEvents(); }
++_touch_pinch_last = TouchFingerDistance();
++}
++break;
++}
++
++case SDL_FINGERMOTION: {
++TouchFingerState *f = FindTouchFinger(ev.tfinger.fingerId);
++if (f == nullptr) break;
++TouchGetPos(ev.tfinger, f->x, f->y);
++
++if (_touch_count >= 2) {
++if (!touch_mode) break;
++float dist = TouchFingerDistance();
++if (_touch_pinch_last <= 0.0f) { _touch_pinch_last = dist; break; }
++float delta = dist - _touch_pinch_last;
++bool changed = false;
++while (delta > 24.0f) { _cursor.wheel--; delta -= 24.0f; changed = true; }
++while (delta < -24.0f) { _cursor.wheel++; delta += 24.0f; changed = true; }
++if (changed) {
++_cursor.wheel_moved = true;
++_touch_pinch_last = dist;
++HandleMouseEvents();
++}
++break;
++}
++
++if (!touch_mode || f->id != _touch_main_id) break;
++
++int dx = f->x - _touch_start_x;
++int dy = f->y - _touch_start_y;
++if (!_touch_moved && (std::abs(dx) > 12 || std::abs(dy) > 12)) _touch_moved = true;
++if (!_touch_moved) break;
++
++_touch_last_x = f->x;
++_touch_last_y = f->y;
++_cursor.pos.x = f->x;
++_cursor.pos.y = f->y;
++
++if (_thd.place_mode != HT_NONE) {
++/* Placement mode: the finger only moves the placement target; the map does not pan. */
++HandleMouseEvents();
++} else if (_touch_started_in_viewport) {
++/* Normal mode, started on the map: pan the map (right button drag). */
++_right_button_down = true;
++HandleMouseEvents();
++} else {
++/* Started on a window: forward as a left button drag (lists, windows). */
++_left_button_down = true;
++HandleMouseEvents();
++}
++break;
++}
++
++case SDL_FINGERUP: {
++TouchFingerState *f = FindTouchFinger(ev.tfinger.fingerId);
++if (f == nullptr) break;
++int x = f->x;
++int y = f->y;
++bool was_main = (f->id == _touch_main_id);
++ReleaseTouchFinger(f->id);
++_touch_count--;
++
++/* Release whatever synthetic button we may have pressed. */
++if (_right_button_down) { _right_button_down = false; }
++if (_left_button_down) { _left_button_down = false; _left_button_clicked = false; }
++
++if (_touch_count == 0) {
++bool tap = was_main && !_touch_moved && !_touch_pinch_active &&
++(!touch_mode || !_touch_long_press_fired);
++if (tap) {
++if (!touch_mode) {
++/* Touch controls disabled: fall back to a plain left click. */
++TouchSendLeftClick(x, y);
++} else if (_thd.place_mode != HT_NONE) {
++/* Confirm the placement. */
++TouchSendLeftClick(x, y);
++} else if (_settings_client.gui.touch_primary_right) {
++TouchSendRightClick(x, y);
++} else {
++TouchSendLeftClick(x, y);
++}
++} else {
++HandleMouseEvents();
++}
++_touch_main_id = 0;
++_touch_moved = false;
++_touch_long_press_fired = false;
++_touch_pinch_active = false;
++_touch_pinch_last = 0.0f;
++} else {
++/* A finger was lifted during a pinch; keep the remaining finger from becoming a tap. */
++_touch_moved = true;
++_touch_pinch_active = false;
++_touch_pinch_last = 0.0f;
++if (_touch_count == 1) {
++for (auto &ff : _touch_fingers) {
++if (ff.active) { _touch_main_id = ff.id; break; }
++}
++}
++HandleMouseEvents();
++}
++break;
++}
++
++default:
++break;
++}
++}
++#endif /* __ANDROID__ */
++
++
+ void VideoDriver_SDL_Base::MakeDirty(int left, int top, int width, int height)
+ {
+ 	Rect r = {left, top, left + width, top + height};
+@@ -210,7 +471,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
+ void VideoDriver_SDL_Base::EditBoxGainedFocus()
+ {
+ 	if (!this->edit_box_focused) {
+-		SDL_StartTextInput();
++		#ifdef __ANDROID__
++			if (_settings_client.gui.touch_system_keyboard) SDL_StartTextInput();
++		#else
++			SDL_StartTextInput();
++		#endif
+ 		this->edit_box_focused = true;
+ 	}
+ }
+@@ -276,6 +541,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
+ 	AM(SDLK_0, SDLK_9, '0', '9'),
+ 
+ 	AS_UP(SDLK_ESCAPE,    WKC_ESC),
++	AS_UP(SDLK_AC_BACK,   WKC_ESC),
+ 	AS_UP(SDLK_PAUSE,     WKC_PAUSE),
+ 	AS_UP(SDLK_BACKSPACE, WKC_BACKSPACE),
+ 
+@@ -457,6 +723,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+ 			HandleMouseEvents();
+ 			break;
+ 
++#ifdef __ANDROID__
++		case SDL_FINGERDOWN:
++		case SDL_FINGERMOTION:
++		case SDL_FINGERUP:
++			HandleTouchEvent(ev);
++			break;
++#endif
++
+ 		case SDL_QUIT:
+ 			HandleExitGameRequest();
+ 			break;
+@@ -543,6 +817,11 @@ static std::optional<std::string_view> InitializeSDL()
+ 
+ std::optional<std::string_view> VideoDriver_SDL_Base::Initialize()
+ {
++#ifdef __ANDROID__
++	/* We handle touch events ourselves; do not let SDL synthesise mouse events. */
++	SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
++	SDL_SetHint(SDL_HINT_MOUSE_TOUCH_EVENTS, "0");
++#endif
+ 	this->UpdateAutoResolution();
+ 
+ 	auto error = InitializeSDL();
+@@ -657,7 +936,11 @@ void VideoDriver_SDL_Base::LoopOnce()
+ 		return;
+ 	}
+ 
+-	this->Tick();
++	#ifdef __ANDROID__
++UpdateTouchLongPress();
++#endif
++
++this->Tick();
+ 
+ /* Emscripten is running an event-based mainloop; there is already some
+  * downtime between each iteration, so no need to sleep. */
+diff --git a/src/widgets/toolbar_widget.h b/src/widgets/toolbar_widget.h
+index 3e90ad4..c017776 100644
+--- a/src/widgets/toolbar_widget.h
++++ b/src/widgets/toolbar_widget.h
+@@ -45,6 +45,7 @@ enum ToolbarNormalWidgets : WidgetID {
+ 	WID_TN_MESSAGES,      ///< Messages menu.
+ 	WID_TN_HELP,          ///< Help menu.
+ 	WID_TN_SWITCH_BAR,    ///< Only available when toolbar has been split to switch between different subsets.
++	WID_TN_TOUCH_LR,      ///< Android: toggle the touch primary mouse button (left/right).
+ 	WID_TN_END,           ///< Helper for knowing the amount of widgets.
+ };
+ 

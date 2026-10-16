@@ -36,7 +36,8 @@ cd android && ./gradlew assembleDebug
 - ✅ 内置 Chinese True Town Names（zbx1425）并设为新游戏默认地名
 - ✅ 存档/配置在 /sdcard/OpenTTD（需「所有文件访问权限」）
 - ✅ 联网内容下载：已加 INTERNET 权限；无 libcurl 时自动走 OpenTTD 的 TCP fallback 下载通道
-- ⏳ 触摸操作 / 缩放手势 仍在打磨
+- ✅ 触控 v1：轻点左键、拖动平移、长按右键、双指缩放、返回键=Esc、顶部左/右键切换
+- ⏳ 放置 ✓/✗ 确认按钮（下一版）
 
 ## 许可
 OpenTTD 本体为 GPLv2。`font/OpenTTD-CJK.otf` 来自 Noto Sans CJK（SIL OFL 1.1）。
