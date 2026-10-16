@@ -754,7 +754,7 @@ index c86465e..44f4012 100644
  		hor->Add(std::move(leaf));
  	}
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e31afce..873ace8 100644
+index e31afce..49feee2 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -19,6 +19,9 @@
@@ -767,7 +767,7 @@ index e31afce..873ace8 100644
  #include "sdl2_v.h"
  #include <SDL.h>
  #ifdef __EMSCRIPTEN__
-@@ -28,6 +31,283 @@
+@@ -28,6 +31,299 @@
  
  #include "../safeguards.h"
  
@@ -829,6 +829,15 @@ index e31afce..873ace8 100644
 +return;
 +}
 +}
++}
++
++/** Clear any leftover viewport-scroll state so the next gesture starts clean. */
++static void TouchResetScrollState()
++{
++_cursor.fix_at = false;
++_cursor.delta.x = 0;
++_cursor.delta.y = 0;
++_scrolling_viewport = false;
 +}
 +
 +static void TouchGetPos(const SDL_TouchFingerEvent &e, int &x, int &y)
@@ -900,6 +909,7 @@ index e31afce..873ace8 100644
 +if (f == nullptr) break;
 +TouchGetPos(ev.tfinger, f->x, f->y);
 +_touch_count++;
++if (_touch_count == 1) TouchResetScrollState();
 +
 +if (_touch_count == 1) {
 +_touch_main_id = f->id;
@@ -1003,17 +1013,23 @@ index e31afce..873ace8 100644
 +if (_right_button_down) { _right_button_down = false; }
 +if (_left_button_down) { _left_button_down = false; _left_button_clicked = false; }
 +
++TouchResetScrollState();
++
 +if (_touch_count == 0) {
 +bool tap = was_main && !_touch_moved && !_touch_pinch_active &&
 +(!touch_mode || !_touch_long_press_fired);
 +if (tap) {
++/* Only clicks on the map may use the right mouse button; every
++ * click on a window (toolbars, lists, buttons) is a left click. */
++Window *tw = FindWindowFromPt(x, y);
++bool tap_in_viewport = (tw != nullptr && IsPtInWindowViewport(tw, x, y) != nullptr);
 +if (!touch_mode) {
 +/* Touch controls disabled: fall back to a plain left click. */
 +TouchSendLeftClick(x, y);
 +} else if (_thd.place_mode != HT_NONE) {
 +/* Confirm the placement. */
 +TouchSendLeftClick(x, y);
-+} else if (_settings_client.gui.touch_primary_right) {
++} else if (tap_in_viewport && _settings_client.gui.touch_primary_right) {
 +TouchSendRightClick(x, y);
 +} else {
 +TouchSendLeftClick(x, y);
@@ -1051,7 +1067,7 @@ index e31afce..873ace8 100644
  void VideoDriver_SDL_Base::MakeDirty(int left, int top, int width, int height)
  {
  	Rect r = {left, top, left + width, top + height};
-@@ -210,7 +490,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
+@@ -210,7 +506,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
  void VideoDriver_SDL_Base::EditBoxGainedFocus()
  {
  	if (!this->edit_box_focused) {
@@ -1064,7 +1080,7 @@ index e31afce..873ace8 100644
  		this->edit_box_focused = true;
  	}
  }
-@@ -276,6 +560,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
+@@ -276,6 +576,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
  	AM(SDLK_0, SDLK_9, '0', '9'),
  
  	AS_UP(SDLK_ESCAPE,    WKC_ESC),
@@ -1072,7 +1088,7 @@ index e31afce..873ace8 100644
  	AS_UP(SDLK_PAUSE,     WKC_PAUSE),
  	AS_UP(SDLK_BACKSPACE, WKC_BACKSPACE),
  
-@@ -457,6 +742,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -457,6 +758,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  			HandleMouseEvents();
  			break;
  
@@ -1087,7 +1103,7 @@ index e31afce..873ace8 100644
  		case SDL_QUIT:
  			HandleExitGameRequest();
  			break;
-@@ -543,6 +836,11 @@ static std::optional<std::string_view> InitializeSDL()
+@@ -543,6 +852,11 @@ static std::optional<std::string_view> InitializeSDL()
  
  std::optional<std::string_view> VideoDriver_SDL_Base::Initialize()
  {
@@ -1099,7 +1115,7 @@ index e31afce..873ace8 100644
  	this->UpdateAutoResolution();
  
  	auto error = InitializeSDL();
-@@ -657,7 +955,11 @@ void VideoDriver_SDL_Base::LoopOnce()
+@@ -657,7 +971,11 @@ void VideoDriver_SDL_Base::LoopOnce()
  		return;
  	}
  
