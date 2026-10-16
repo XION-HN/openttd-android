@@ -754,7 +754,7 @@ index c86465e..44f4012 100644
  		hor->Add(std::move(leaf));
  	}
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e31afce..cda6893 100644
+index e31afce..fbbe45a 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -19,6 +19,8 @@
@@ -766,7 +766,7 @@ index e31afce..cda6893 100644
  #include "sdl2_v.h"
  #include <SDL.h>
  #ifdef __EMSCRIPTEN__
-@@ -28,6 +30,267 @@
+@@ -28,6 +30,271 @@
  
  #include "../safeguards.h"
  
@@ -888,7 +888,7 @@ index e31afce..cda6893 100644
 +TouchSendRightClick(_touch_last_x, _touch_last_y);
 +}
 +
-+static void HandleTouchEvent(const SDL_Event &ev)
++static void HandleTouchEvent(SDL_Window *win, const SDL_Event &ev)
 +{
 +const bool touch_mode = _settings_client.gui.touch_mode;
 +
@@ -955,8 +955,12 @@ index e31afce..cda6893 100644
 +
 +_touch_last_x = f->x;
 +_touch_last_y = f->y;
-+_cursor.pos.x = f->x;
-+_cursor.pos.y = f->y;
++
++/* Use OpenTTD's own cursor update so _cursor.delta is filled in;
++ * the viewport scrolling code relies on that delta. */
++if (_cursor.UpdateCursorPosition(f->x, f->y)) {
++SDL_WarpMouseInWindow(win, _cursor.pos.x, _cursor.pos.y);
++}
 +
 +if (_thd.place_mode != HT_NONE) {
 +/* Placement mode: the finger only moves the placement target; the map does not pan. */
@@ -1034,7 +1038,7 @@ index e31afce..cda6893 100644
  void VideoDriver_SDL_Base::MakeDirty(int left, int top, int width, int height)
  {
  	Rect r = {left, top, left + width, top + height};
-@@ -210,7 +473,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
+@@ -210,7 +477,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
  void VideoDriver_SDL_Base::EditBoxGainedFocus()
  {
  	if (!this->edit_box_focused) {
@@ -1047,7 +1051,7 @@ index e31afce..cda6893 100644
  		this->edit_box_focused = true;
  	}
  }
-@@ -276,6 +543,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
+@@ -276,6 +547,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
  	AM(SDLK_0, SDLK_9, '0', '9'),
  
  	AS_UP(SDLK_ESCAPE,    WKC_ESC),
@@ -1055,7 +1059,7 @@ index e31afce..cda6893 100644
  	AS_UP(SDLK_PAUSE,     WKC_PAUSE),
  	AS_UP(SDLK_BACKSPACE, WKC_BACKSPACE),
  
-@@ -457,6 +725,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -457,6 +729,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  			HandleMouseEvents();
  			break;
  
@@ -1063,14 +1067,14 @@ index e31afce..cda6893 100644
 +		case SDL_FINGERDOWN:
 +		case SDL_FINGERMOTION:
 +		case SDL_FINGERUP:
-+			HandleTouchEvent(ev);
++			HandleTouchEvent(this->sdl_window, ev);
 +			break;
 +#endif
 +
  		case SDL_QUIT:
  			HandleExitGameRequest();
  			break;
-@@ -543,6 +819,11 @@ static std::optional<std::string_view> InitializeSDL()
+@@ -543,6 +823,11 @@ static std::optional<std::string_view> InitializeSDL()
  
  std::optional<std::string_view> VideoDriver_SDL_Base::Initialize()
  {
@@ -1082,7 +1086,7 @@ index e31afce..cda6893 100644
  	this->UpdateAutoResolution();
  
  	auto error = InitializeSDL();
-@@ -657,7 +938,11 @@ void VideoDriver_SDL_Base::LoopOnce()
+@@ -657,7 +942,11 @@ void VideoDriver_SDL_Base::LoopOnce()
  		return;
  	}
  
