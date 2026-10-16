@@ -639,7 +639,7 @@ index 6989729..e3d13f8 100644
  var      = gui.right_click_wnd_close
  type     = SLE_UINT8
 diff --git a/src/toolbar_gui.cpp b/src/toolbar_gui.cpp
-index c86465e..086ad72 100644
+index c86465e..44f4012 100644
 --- a/src/toolbar_gui.cpp
 +++ b/src/toolbar_gui.cpp
 @@ -24,6 +24,7 @@
@@ -660,7 +660,30 @@ index c86465e..086ad72 100644
  			WID_TN_PAUSE,
  			WID_TN_FAST_FORWARD,
  			WID_TN_SETTINGS,
-@@ -1941,6 +1945,18 @@ class NWidgetScenarioToolbarContainer : public NWidgetToolbarContainer {
+@@ -1802,6 +1806,14 @@ class NWidgetMainToolbarContainer : public NWidgetToolbarContainer {
+ 			WID_TN_HELP
+ 		};
+ 
++#ifdef __ANDROID__
++/* Android: always show the full single-row toolbar. Otherwise the toolbar
++ * switches to the split layout, which does not contain the touch
++ * left/right toggle button, making it impossible to click. */
++button_count = arrangeable_count = lengthof(arrange_all);
++spacer_count = this->spacers;
++return arrange_all;
++#else
+ 		/* If at least BIGGEST_ARRANGEMENT fit, just spread all the buttons nicely */
+ 		uint full_buttons = std::max(CeilDiv(width, this->smallest_x), SMALLEST_ARRANGEMENT);
+ 		if (full_buttons > BIGGEST_ARRANGEMENT) {
+@@ -1816,6 +1828,7 @@ class NWidgetMainToolbarContainer : public NWidgetToolbarContainer {
+ 		button_count = arrangeable_count = full_buttons;
+ 		spacer_count = this->spacers;
+ 		return arrangements[full_buttons - SMALLEST_ARRANGEMENT] + ((_toolbar_mode == TB_LOWER) ? full_buttons : 0);
++#endif
+ 	}
+ };
+ 
+@@ -1941,6 +1954,19 @@ class NWidgetScenarioToolbarContainer : public NWidgetToolbarContainer {
  
  typedef CallBackFunction ToolbarButtonProc(Window *w);
  
@@ -669,6 +692,7 @@ index c86465e..086ad72 100644
 +static CallBackFunction ToolbarTouchToggleClick(Window *w)
 +{
 +_settings_client.gui.touch_primary_right = !_settings_client.gui.touch_primary_right;
++fmt::print(stderr, "[touch] toolbar toggle clicked, primary_right={}\n", _settings_client.gui.touch_primary_right);
 +SaveToConfig();
 +w->SetWidgetLoweredState(WID_TN_TOUCH_LR, _settings_client.gui.touch_primary_right);
 +w->SetWidgetDirty(WID_TN_TOUCH_LR);
@@ -679,7 +703,7 @@ index c86465e..086ad72 100644
  static ToolbarButtonProc * const _toolbar_button_procs[] = {
  	ToolbarPauseClick,
  	ToolbarFastForwardClick,
-@@ -1973,6 +1989,11 @@ static ToolbarButtonProc * const _toolbar_button_procs[] = {
+@@ -1973,6 +1999,11 @@ static ToolbarButtonProc * const _toolbar_button_procs[] = {
  	ToolbarNewspaperClick,
  	ToolbarHelpClick,
  	ToolbarSwitchClick,
@@ -691,7 +715,7 @@ index c86465e..086ad72 100644
  };
  
  /** Main toolbar. */
-@@ -2101,6 +2122,13 @@ struct MainToolbarWindow : Window {
+@@ -2101,6 +2132,13 @@ struct MainToolbarWindow : Window {
  			this->ToggleWidgetLoweredState(WID_TN_FAST_FORWARD);
  			this->SetWidgetDirty(WID_TN_FAST_FORWARD);
  		}
@@ -705,7 +729,7 @@ index c86465e..086ad72 100644
  	}};
  
  	/**
-@@ -2160,6 +2188,9 @@ struct MainToolbarWindow : Window {
+@@ -2160,6 +2198,9 @@ struct MainToolbarWindow : Window {
  
  /** Sprites to use for the different toolbar buttons */
  static constexpr std::tuple<WidgetID, WidgetType, SpriteID> _toolbar_button_sprites[] = {
@@ -715,7 +739,7 @@ index c86465e..086ad72 100644
  	{WID_TN_PAUSE,        WWT_IMGBTN,     SPR_IMG_PAUSE},
  	{WID_TN_FAST_FORWARD, WWT_IMGBTN,     SPR_IMG_FASTFORWARD},
  	{WID_TN_SETTINGS,     WWT_IMGBTN,     SPR_IMG_SETTINGS},
-@@ -2225,7 +2256,12 @@ static std::unique_ptr<NWidgetBase> MakeMainToolbar()
+@@ -2225,7 +2266,12 @@ static std::unique_ptr<NWidgetBase> MakeMainToolbar()
  				hor->Add(std::make_unique<NWidgetSpacer>(0, 0));
  				break;
  		}
@@ -730,7 +754,7 @@ index c86465e..086ad72 100644
  		hor->Add(std::move(leaf));
  	}
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e31afce..132fd54 100644
+index e31afce..cda6893 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
 @@ -19,6 +19,8 @@
@@ -742,7 +766,7 @@ index e31afce..132fd54 100644
  #include "sdl2_v.h"
  #include <SDL.h>
  #ifdef __EMSCRIPTEN__
-@@ -28,6 +30,265 @@
+@@ -28,6 +30,267 @@
  
  #include "../safeguards.h"
  
@@ -824,6 +848,7 @@ index e31afce..132fd54 100644
 +
 +static void TouchSendLeftClick(int x, int y)
 +{
++fmt::print(stderr, "[touch] left click at {} {}\n", x, y);
 +_cursor.pos.x = x;
 +_cursor.pos.y = y;
 +_left_button_down = true;
@@ -836,6 +861,7 @@ index e31afce..132fd54 100644
 +
 +static void TouchSendRightClick(int x, int y)
 +{
++fmt::print(stderr, "[touch] right click at {} {}\n", x, y);
 +_cursor.pos.x = x;
 +_cursor.pos.y = y;
 +_right_button_down = true;
@@ -1008,7 +1034,7 @@ index e31afce..132fd54 100644
  void VideoDriver_SDL_Base::MakeDirty(int left, int top, int width, int height)
  {
  	Rect r = {left, top, left + width, top + height};
-@@ -210,7 +471,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
+@@ -210,7 +473,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
  void VideoDriver_SDL_Base::EditBoxGainedFocus()
  {
  	if (!this->edit_box_focused) {
@@ -1021,7 +1047,7 @@ index e31afce..132fd54 100644
  		this->edit_box_focused = true;
  	}
  }
-@@ -276,6 +541,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
+@@ -276,6 +543,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
  	AM(SDLK_0, SDLK_9, '0', '9'),
  
  	AS_UP(SDLK_ESCAPE,    WKC_ESC),
@@ -1029,7 +1055,7 @@ index e31afce..132fd54 100644
  	AS_UP(SDLK_PAUSE,     WKC_PAUSE),
  	AS_UP(SDLK_BACKSPACE, WKC_BACKSPACE),
  
-@@ -457,6 +723,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -457,6 +725,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  			HandleMouseEvents();
  			break;
  
@@ -1044,7 +1070,7 @@ index e31afce..132fd54 100644
  		case SDL_QUIT:
  			HandleExitGameRequest();
  			break;
-@@ -543,6 +817,11 @@ static std::optional<std::string_view> InitializeSDL()
+@@ -543,6 +819,11 @@ static std::optional<std::string_view> InitializeSDL()
  
  std::optional<std::string_view> VideoDriver_SDL_Base::Initialize()
  {
@@ -1056,7 +1082,7 @@ index e31afce..132fd54 100644
  	this->UpdateAutoResolution();
  
  	auto error = InitializeSDL();
-@@ -657,7 +936,11 @@ void VideoDriver_SDL_Base::LoopOnce()
+@@ -657,7 +938,11 @@ void VideoDriver_SDL_Base::LoopOnce()
  		return;
  	}
  
