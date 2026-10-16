@@ -754,19 +754,20 @@ index c86465e..44f4012 100644
  		hor->Add(std::move(leaf));
  	}
 diff --git a/src/video/sdl2_v.cpp b/src/video/sdl2_v.cpp
-index e31afce..fbbe45a 100644
+index e31afce..873ace8 100644
 --- a/src/video/sdl2_v.cpp
 +++ b/src/video/sdl2_v.cpp
-@@ -19,6 +19,8 @@
+@@ -19,6 +19,9 @@
  #include "../fileio_func.h"
  #include "../framerate_type.h"
  #include "../window_func.h"
++#include "../window_gui.h"
 +#include "../tilehighlight_func.h"
 +#include "../viewport_func.h"
  #include "sdl2_v.h"
  #include <SDL.h>
  #ifdef __EMSCRIPTEN__
-@@ -28,6 +30,271 @@
+@@ -28,6 +31,283 @@
  
  #include "../safeguards.h"
  
@@ -950,7 +951,13 @@ index e31afce..fbbe45a 100644
 +
 +int dx = f->x - _touch_start_x;
 +int dy = f->y - _touch_start_y;
-+if (!_touch_moved && (std::abs(dx) > 12 || std::abs(dy) > 12)) _touch_moved = true;
++if (!_touch_moved && (std::abs(dx) > 12 || std::abs(dy) > 12)) {
++_touch_moved = true;
++Window *dw = FindWindowFromPt(f->x, f->y);
++bool in_view = (dw != nullptr && IsPtInWindowViewport(dw, f->x, f->y) != nullptr);
++fmt::print(stderr, "[touch] drag start: start=({},{}) now=({},{}) in_viewport={} placing={}\n",
++_touch_start_x, _touch_start_y, f->x, f->y, in_view, _thd.place_mode != HT_NONE);
++}
 +if (!_touch_moved) break;
 +
 +_touch_last_x = f->x;
@@ -967,6 +974,12 @@ index e31afce..fbbe45a 100644
 +HandleMouseEvents();
 +} else if (_touch_started_in_viewport) {
 +/* Normal mode, started on the map: pan the map (right button drag). */
++if (!_scrolling_viewport) {
++_scrolling_viewport = true;
++_cursor.fix_at = (_settings_client.gui.scroll_mode == VSM_VIEWPORT_RMB_FIXED ||
++_settings_client.gui.scroll_mode == VSM_MAP_RMB_FIXED);
++fmt::print(stderr, "[touch] pan start, scroll_mode={}, fix_at={}\n", _settings_client.gui.scroll_mode, _cursor.fix_at);
++}
 +_right_button_down = true;
 +HandleMouseEvents();
 +} else {
@@ -1038,7 +1051,7 @@ index e31afce..fbbe45a 100644
  void VideoDriver_SDL_Base::MakeDirty(int left, int top, int width, int height)
  {
  	Rect r = {left, top, left + width, top + height};
-@@ -210,7 +477,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
+@@ -210,7 +490,11 @@ bool VideoDriver_SDL_Base::ClaimMousePointer()
  void VideoDriver_SDL_Base::EditBoxGainedFocus()
  {
  	if (!this->edit_box_focused) {
@@ -1051,7 +1064,7 @@ index e31afce..fbbe45a 100644
  		this->edit_box_focused = true;
  	}
  }
-@@ -276,6 +547,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
+@@ -276,6 +560,7 @@ static constexpr SDLVkMapping _vk_mapping[] = {
  	AM(SDLK_0, SDLK_9, '0', '9'),
  
  	AS_UP(SDLK_ESCAPE,    WKC_ESC),
@@ -1059,7 +1072,7 @@ index e31afce..fbbe45a 100644
  	AS_UP(SDLK_PAUSE,     WKC_PAUSE),
  	AS_UP(SDLK_BACKSPACE, WKC_BACKSPACE),
  
-@@ -457,6 +729,14 @@ bool VideoDriver_SDL_Base::PollEvent()
+@@ -457,6 +742,14 @@ bool VideoDriver_SDL_Base::PollEvent()
  			HandleMouseEvents();
  			break;
  
@@ -1074,7 +1087,7 @@ index e31afce..fbbe45a 100644
  		case SDL_QUIT:
  			HandleExitGameRequest();
  			break;
-@@ -543,6 +823,11 @@ static std::optional<std::string_view> InitializeSDL()
+@@ -543,6 +836,11 @@ static std::optional<std::string_view> InitializeSDL()
  
  std::optional<std::string_view> VideoDriver_SDL_Base::Initialize()
  {
@@ -1086,7 +1099,7 @@ index e31afce..fbbe45a 100644
  	this->UpdateAutoResolution();
  
  	auto error = InitializeSDL();
-@@ -657,7 +942,11 @@ void VideoDriver_SDL_Base::LoopOnce()
+@@ -657,7 +955,11 @@ void VideoDriver_SDL_Base::LoopOnce()
  		return;
  	}
  
