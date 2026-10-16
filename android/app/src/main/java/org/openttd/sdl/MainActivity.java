@@ -43,9 +43,9 @@ import java.util.Locale;
  */
 public class MainActivity extends SDLActivity {
     private static final String TAG = "OpenTTD";
-    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 13)";
+    private static final String APP_VERSION = "OpenTTD 15.3 (versionCode 14)";
     private static final String ASSET_ROOT = "data";
-    private static final String ASSET_VERSION = "15.3-9";
+    private static final String ASSET_VERSION = "15.3-10";
     private static final String CJK_FONT = "baseset/OpenTTD-CJK.otf";
     private static final String TOWN_NAME_GRF = "Chinese_True_Town_Names.grf";
     private static final String OLD_TOWN_NAME_GRF = "chinese_town_names.grf";

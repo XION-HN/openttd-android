@@ -139,7 +139,12 @@ ABASE_TAR="$WORK/abase-0.1.2.tar.gz"
 if [ ! -s "$ABASE_TAR" ] || [ "$(wc -c < "$ABASE_TAR")" -lt 200000000 ]; then
     curl -fL --retry 3 -o "$ABASE_TAR" "$ABASE_URL"
 fi
-cp "$ABASE_TAR" "$AND/assets/data/baseset/abase-0.1.2.tar.gz"
+if [ ! -f "$WORK/abase/abase-0.1.2/abase.obg" ]; then
+    rm -rf "$WORK/abase"; mkdir -p "$WORK/abase"
+    tar -xzf "$ABASE_TAR" -C "$WORK/abase"
+fi
+mkdir -p "$AND/assets/data/baseset/abase-0.1.2"
+cp -a "$WORK/abase/abase-0.1.2/." "$AND/assets/data/baseset/abase-0.1.2/"
 
 # 内置 Chinese True Town Names NewGRF
 mkdir -p "$AND/assets/data/newgrf"

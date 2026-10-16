@@ -117,10 +117,31 @@ index e089832..56817c3 100644
  }
  
 diff --git a/src/openttd.cpp b/src/openttd.cpp
-index 7d585b0..9011f56 100644
+index 7d585b0..957ed16 100644
 --- a/src/openttd.cpp
 +++ b/src/openttd.cpp
-@@ -751,6 +751,9 @@ int openttd_main(std::span<std::string_view> arguments)
+@@ -705,6 +705,11 @@ int openttd_main(std::span<std::string_view> arguments)
+ 	InitWindowSystem();
+ 
+ 	BaseGraphics::FindSets();
++
++	/* Android 诊断：列出扫描到的基础图形集。 */
++	for (const auto &set : BaseGraphics::GetAvailableSets()) {
++		fmt::print(stderr, "[graphics] found: {} ({:08X}) {}\n", set->name, set->shortname, set->blitter == BLT_32BPP ? "32bpp" : "8bpp");
++	}
+ 	bool valid_graphics_set;
+ 	if (!graphics_set.empty()) {
+ 		valid_graphics_set = BaseGraphics::SetSetByName(graphics_set);
+@@ -731,6 +736,8 @@ int openttd_main(std::span<std::string_view> arguments)
+ 		ScheduleErrorMessage(msg);
+ 	}
+ 
++	fmt::print(stderr, "[graphics] used: {}\n", BaseGraphics::GetUsedSet() != nullptr ? BaseGraphics::GetUsedSet()->name : "(none)");
++
+ 	/* Initialize game palette */
+ 	GfxInitPalettes();
+ 
+@@ -751,6 +758,9 @@ int openttd_main(std::span<std::string_view> arguments)
  				UserError("Failed to autoprobe blitter") :
  				UserError("Failed to select requested blitter '{}'; does it exist?", blitter);
  		}
