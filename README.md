@@ -39,6 +39,7 @@ cd android && ./gradlew assembleDebug
 - ✅ 中文界面（FreeType + CJK 字体，12929 字符：GB2312 全字 + 中文符号/全角/箭头等）
 - ✅ 内置 Chinese True Town Names（zbx1425）并设为新游戏默认地名
 - ✅ 存档/配置在 /sdcard/OpenTTD（需「所有文件访问权限」）
+- ✅ 内置 OpenMSX 音乐集（BGM）：音乐窗口可直接选曲，不再是「无音乐可用」
 - ✅ 联网内容下载：已加 INTERNET 权限；无 libcurl 时自动走 OpenTTD 的 TCP fallback 下载通道
 - ✅ 内容搜索补全：旧版模组（FIRS 1-4 等）不再因兼容性标记被 BaNaNaS 隐藏
 - ✅ 触控 v1：轻点左键、拖动平移、长按右键、双指缩放、返回键=Esc、顶部左/右键切换

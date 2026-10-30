@@ -14,6 +14,7 @@ SDL2_REF="${SDL2_REF:-release-2.32.10}"
 FT_REF="${FT_REF:-VER-2-13-3}"
 XZ_VER="${XZ_VER:-5.6.3}"
 OPENGFX_VER="${OPENGFX_VER:-8.0}"
+OPENMSX_VER="${OPENMSX_VER:-0.4.2}"
 JOBS="${JOBS:-$(nproc)}"
 
 if [ -z "${ANDROID_NDK_HOME:-}" ] && [ -n "${ANDROID_SDK_ROOT:-}" ]; then
@@ -163,6 +164,18 @@ if [ ! -f "$WORK/opengfx/opengfx-$OPENGFX_VER/opengfx.obg" ]; then
 fi
 mkdir -p "$AND/assets/data/baseset/OpenGFX"
 cp "$WORK/opengfx/opengfx-$OPENGFX_VER/"* "$AND/assets/data/baseset/OpenGFX/"
+
+# OpenMSX 音乐集（BGM）：内置后游戏「音乐」窗口才有曲目可用
+if [ ! -f "$WORK/openmsx/openmsx-$OPENMSX_VER/openmsx.obm" ]; then
+    mkdir -p "$WORK/openmsx"
+    cd "$WORK/openmsx"
+    curl -fL --retry 3 -o openmsx.zip "https://cdn.openttd.org/openmsx-releases/$OPENMSX_VER/openmsx-$OPENMSX_VER-all.zip"
+    unzip -o -q openmsx.zip
+    tar -xf "openmsx-$OPENMSX_VER.tar"
+fi
+mkdir -p "$AND/assets/data/baseset/openmsx-$OPENMSX_VER"
+cp "$WORK/openmsx/openmsx-$OPENMSX_VER/"* "$AND/assets/data/baseset/openmsx-$OPENMSX_VER/"
+echo "OpenMSX 音乐集: $(ls "$AND/assets/data/baseset/openmsx-$OPENMSX_VER" | wc -l) 个文件"
 
 echo "==================== 完成 ===================="
 ls -lh "$AND/jniLibs/$ABI"
