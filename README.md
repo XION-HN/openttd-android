@@ -3,6 +3,10 @@
 把 OpenTTD 15.3 移植到 Android（arm64-v8a），基于 **NDK + SDL2 + FreeType + Gradle**。
 官方 OpenTTD 源码本身不含 Android 构建系统，本仓库提供：
 
+- `patches/0002-content-search-hidden-newgrf.patch`：内容列表补全补丁
+  - BaNaNaS 会按客户端上报的版本号过滤 `compatibility`，被标成旧版本兼容的模组（FIRS 1-4、FISH 1、Iron Horse 1/2、2cc Trainset 等）服务端根本不下发
+  - 该补丁额外用 `0.0.1`/`1.2.0` 各请求一轮列表再合并去重，使这些模组能被搜到
+  - 同时让「搜寻内容」也匹配模组描述文本
 - `patches/openttd-android-15.3.patch`：对 OpenTTD 15.3 源码的移植补丁
   - bionic 缺头文件修复（`src/ini.cpp`）
   - Android 下把 `openttd` 目标改成 `libmain.so`（导出 `SDL_main`，供 SDLActivity 调用）
@@ -36,6 +40,7 @@ cd android && ./gradlew assembleDebug
 - ✅ 内置 Chinese True Town Names（zbx1425）并设为新游戏默认地名
 - ✅ 存档/配置在 /sdcard/OpenTTD（需「所有文件访问权限」）
 - ✅ 联网内容下载：已加 INTERNET 权限；无 libcurl 时自动走 OpenTTD 的 TCP fallback 下载通道
+- ✅ 内容搜索补全：旧版模组（FIRS 1-4 等）不再因兼容性标记被 BaNaNaS 隐藏
 - ✅ 触控 v1：轻点左键、拖动平移、长按右键、双指缩放、返回键=Esc、顶部左/右键切换
 - ⏳ 放置 ✓/✗ 确认按钮（下一版）
 

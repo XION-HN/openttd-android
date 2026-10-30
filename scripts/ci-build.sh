@@ -47,6 +47,8 @@ git checkout -f "$OTTD_VER" -- 2>/dev/null || true
 git reset --hard "$OTTD_VER"
 git clean -fdx
 git apply "$ROOT/patches/openttd-android-15.3.patch"
+# 内容列表补全：让 BaNaNaS 里被 compatibility 标记隐藏的旧模组（FIRS 1-4 等）也出现在搜索里。
+git apply "$ROOT/patches/0002-content-search-hidden-newgrf.patch"
 echo "补丁已应用: $(git status --short | wc -l) 个文件被修改"
 
 echo "==================== 2/5 宿主工具（strgen 等） ===================="

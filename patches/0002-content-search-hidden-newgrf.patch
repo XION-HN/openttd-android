@@ -1,0 +1,100 @@
+diff --git a/src/network/network_content.cpp b/src/network/network_content.cpp
+index ced3a4d..b0559f5 100644
+--- a/src/network/network_content.cpp
++++ b/src/network/network_content.cpp
+@@ -168,6 +168,40 @@ bool ClientNetworkContentSocketHandler::Receive_SERVER_INFO(Packet &p)
+ 	return true;
+ }
+ 
++/**
++ * Extra OpenTTD versions the content list is requested for, besides the version
++ * this client is actually running.
++ *
++ * BaNaNaS only sends the content whose 'compatibility' metadata covers the
++ * version the client reports. Content that is (accidentally) marked as only
++ * compatible with an old, or with an oddly specific, version is filtered out by
++ * the server and can therefore never show up in the in-game search, even though
++ * plenty of it works fine. Well known examples are FIRS Industries 1-4, FISH 1,
++ * Iron Horse 1/2, 2cc Trainset and BRTrains.
++ *
++ * The content server answers several list requests on a single connection, and
++ * duplicates are filtered out in ReceiveServerInfo, so asking for the list a few
++ * more times only costs (a bit of) bandwidth.
++ */
++static constexpr std::string_view _content_list_extra_versions[] = {"0.0.1", "1.2.0"};
++
++/**
++ * Send a request to the content server for the list of the given content type,
++ * as if this client were running the given version of OpenTTD.
++ * @param type    The content type to request the list for.
++ * @param version The OpenTTD version to report to the content server.
++ */
++void ClientNetworkContentSocketHandler::SendContentListRequest(ContentType type, std::string_view version)
++{
++	auto p = std::make_unique<Packet>(this, PACKET_CONTENT_CLIENT_INFO_LIST);
++	p->Send_uint8 ((uint8_t)type);
++	p->Send_uint32(0xffffffff);
++	p->Send_uint8 (1);
++	p->Send_string("vanilla");
++	p->Send_string(version);
++	this->SendPacket(std::move(p));
++}
++
+ /**
+  * Request the content list for the given type.
+  * @param type The content type to request the list for.
+@@ -190,24 +224,11 @@ void ClientNetworkContentSocketHandler::RequestContentList(ContentType type)
+ 
+ 	this->Connect();
+ 
+-	auto p = std::make_unique<Packet>(this, PACKET_CONTENT_CLIENT_INFO_LIST);
+-	p->Send_uint8 ((uint8_t)type);
+-	p->Send_uint32(0xffffffff);
+-	p->Send_uint8 (1);
+-	p->Send_string("vanilla");
+-	p->Send_string(_openttd_content_version);
+-
+-	/* Patchpacks can extend the list with one. In BaNaNaS metadata you can
+-	 * add a branch in the 'compatibility' list, to filter on this. If you want
+-	 * your patchpack to be mentioned in the BaNaNaS web-interface, create an
+-	 * issue on https://github.com/OpenTTD/bananas-api asking for this.
+-
+-	p->Send_string("patchpack"); // Or what-ever the name of your patchpack is.
+-	p->Send_string(_openttd_content_version_patchpack);
++	this->SendContentListRequest(type, _openttd_content_version);
+ 
+-	 */
+-
+-	this->SendPacket(std::move(p));
++	/* Also ask for the content that is only marked compatible with older
++	 * versions, as the server would otherwise never send that to us. */
++	for (const auto &version : _content_list_extra_versions) this->SendContentListRequest(type, version);
+ }
+ 
+ /**
+diff --git a/src/network/network_content.h b/src/network/network_content.h
+index 6e9d723..f30ff9e 100644
+--- a/src/network/network_content.h
++++ b/src/network/network_content.h
+@@ -84,6 +84,7 @@ protected:
+ 
+ 	ContentInfo *GetContent(ContentID cid) const;
+ 	void DownloadContentInfo(ContentID cid);
++	void SendContentListRequest(ContentType type, std::string_view version);
+ 
+ 	void OnConnect(bool success) override;
+ 	void OnDisconnect() override;
+diff --git a/src/network/network_content_gui.cpp b/src/network/network_content_gui.cpp
+index 914b630..aaa033e 100644
+--- a/src/network/network_content_gui.cpp
++++ b/src/network/network_content_gui.cpp
+@@ -468,6 +468,9 @@ class NetworkContentListWindow : public Window, ContentCallback {
+ 		for (auto &tag : (*a)->tags) filter.string_filter.AddLine(tag);
+ 
+ 		filter.string_filter.AddLine((*a)->name);
++		/* Many sets are only recognisable by what their description says, for
++		 * example whether a set is an industry set with a given economy. */
++		filter.string_filter.AddLine((*a)->description);
+ 		return filter.string_filter.GetState();
+ 	}
+ 
