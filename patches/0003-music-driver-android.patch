@@ -1,0 +1,236 @@
+diff --git a/src/music/CMakeLists.txt b/src/music/CMakeLists.txt
+index cf60e78..bb31620 100644
+--- a/src/music/CMakeLists.txt
++++ b/src/music/CMakeLists.txt
+@@ -37,6 +37,12 @@ if(NOT OPTION_DEDICATED)
+         CONDITION HAIKU
+     )
+ 
++    add_files(
++        music_driver_android.cpp
++        music_driver_android.h
++        CONDITION ANDROID
++    )
++
+     add_files(
+         midi.h
+         midifile.cpp
+diff --git a/src/music/music_driver_android.cpp b/src/music/music_driver_android.cpp
+new file mode 100644
+index 0000000..d82d4cd
+--- /dev/null
++++ b/src/music/music_driver_android.cpp
+@@ -0,0 +1,162 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
++ */
++
++/** @file music_driver_android.cpp Playing music through Android's MediaPlayer. */
++
++#include "../stdafx.h"
++#include "../debug.h"
++#include "music_driver_android.h"
++#include "midifile.hpp"
++#include "../base_media_music.h"
++
++#ifdef __ANDROID__
++#	include <jni.h>
++#	include <SDL_system.h>
++#endif
++
++#include "../safeguards.h"
++
++/** The factory for the Android MediaPlayer music driver. */
++static FMusicDriver_Android iFMusicDriver_Android;
++
++#ifdef __ANDROID__
++
++/** The Java class that does the actual playback, obtained through SDL. */
++static jclass _music_player_class = nullptr;
++static jmethodID _music_player_play = nullptr;
++static jmethodID _music_player_stop = nullptr;
++static jmethodID _music_player_set_volume = nullptr;
++static jmethodID _music_player_is_playing = nullptr;
++
++/**
++ * Get the JNI environment of the current thread.
++ * @return The JNI environment, or \c nullptr when it is not available.
++ */
++static JNIEnv *AndroidGetJNIEnv()
++{
++	JNIEnv *env = static_cast<JNIEnv *>(SDL_AndroidGetJNIEnv());
++	if (env == nullptr) Debug(misc, 0, "Android JNI environment is unavailable");
++	return env;
++}
++
++/**
++ * Look up the Java music player class and its methods once.
++ * @param env The JNI environment.
++ * @return \c true when the class and all methods are available.
++ */
++static bool AndroidEnsureMusicPlayer(JNIEnv *env)
++{
++	if (_music_player_class != nullptr) return true;
++
++	jclass cls = env->FindClass("org/openttd/sdl/AndroidMusicPlayer");
++	if (cls == nullptr) {
++		env->ExceptionClear();
++		Debug(misc, 0, "Android music player class not found");
++		return false;
++	}
++
++	_music_player_class = static_cast<jclass>(env->NewGlobalRef(cls));
++	env->DeleteLocalRef(cls);
++	if (_music_player_class == nullptr) return false;
++
++	_music_player_play = env->GetStaticMethodID(_music_player_class, "play", "(Ljava/lang/String;F)V");
++	_music_player_stop = env->GetStaticMethodID(_music_player_class, "stop", "()V");
++	_music_player_set_volume = env->GetStaticMethodID(_music_player_class, "setVolume", "(F)V");
++	_music_player_is_playing = env->GetStaticMethodID(_music_player_class, "isPlaying", "()Z");
++
++	if (env->ExceptionCheck()) {
++		env->ExceptionClear();
++		Debug(misc, 0, "Android music player methods not found");
++		return false;
++	}
++	return true;
++}
++
++std::optional<std::string_view> MusicDriver_Android::Start([[maybe_unused]] const StringList &parm)
++{
++	JNIEnv *env = AndroidGetJNIEnv();
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return "the Android music player is not available";
++
++	return std::nullopt;
++}
++
++void MusicDriver_Android::Stop()
++{
++	JNIEnv *env = AndroidGetJNIEnv();
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return;
++
++	env->CallStaticVoidMethod(_music_player_class, _music_player_stop);
++	if (env->ExceptionCheck()) env->ExceptionClear();
++}
++
++void MusicDriver_Android::PlaySong(const MusicSongInfo &song)
++{
++	/* MediaPlayer plays real audio files; MIDI is handed over as-is and will
++	 * simply fail to play, which AndroidMusicPlayer handles gracefully. */
++	std::string filename = MidiFile::GetSMFFile(song);
++	if (filename.empty()) {
++		Debug(misc, 3, "Android music driver: could not find the file for song '{}'", song.songname);
++		return;
++	}
++
++	JNIEnv *env = AndroidGetJNIEnv();
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return;
++
++	jstring path = env->NewStringUTF(filename.c_str());
++	if (path == nullptr) {
++		env->ExceptionClear();
++		return;
++	}
++
++	env->CallStaticVoidMethod(_music_player_class, _music_player_play, path, static_cast<jfloat>(this->vol / 100.0));
++	if (env->ExceptionCheck()) env->ExceptionClear();
++	env->DeleteLocalRef(path);
++}
++
++void MusicDriver_Android::StopSong()
++{
++	JNIEnv *env = AndroidGetJNIEnv();
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return;
++
++	env->CallStaticVoidMethod(_music_player_class, _music_player_stop);
++	if (env->ExceptionCheck()) env->ExceptionClear();
++}
++
++bool MusicDriver_Android::IsSongPlaying()
++{
++	JNIEnv *env = AndroidGetJNIEnv();
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return false;
++
++	jboolean playing = env->CallStaticBooleanMethod(_music_player_class, _music_player_is_playing);
++	if (env->ExceptionCheck()) {
++		env->ExceptionClear();
++		return false;
++	}
++	return playing == JNI_TRUE;
++}
++
++void MusicDriver_Android::SetVolume(uint8_t vol)
++{
++	this->vol = vol;
++
++	JNIEnv *env = AndroidGetJNIEnv();
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return;
++
++	env->CallStaticVoidMethod(_music_player_class, _music_player_set_volume, static_cast<jfloat>(vol / 100.0));
++	if (env->ExceptionCheck()) env->ExceptionClear();
++}
++
++#else /* __ANDROID__ */
++
++std::optional<std::string_view> MusicDriver_Android::Start(const StringList &) { return "not supported on this platform"; }
++void MusicDriver_Android::Stop() {}
++void MusicDriver_Android::PlaySong(const MusicSongInfo &) {}
++void MusicDriver_Android::StopSong() {}
++bool MusicDriver_Android::IsSongPlaying() { return false; }
++void MusicDriver_Android::SetVolume(uint8_t) {}
++
++#endif /* __ANDROID__ */
+diff --git a/src/music/music_driver_android.h b/src/music/music_driver_android.h
+new file mode 100644
+index 0000000..0812e08
+--- /dev/null
++++ b/src/music/music_driver_android.h
+@@ -0,0 +1,45 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
++ */
++
++/** @file music_driver_android.h Playing music through Android's MediaPlayer. */
++
++#ifndef MUSIC_MUSIC_DRIVER_ANDROID_H
++#define MUSIC_MUSIC_DRIVER_ANDROID_H
++
++#include "music_driver.hpp"
++
++/**
++ * Music driver that hands the song file over to Android's MediaPlayer through
++ * the org.openttd.sdl.AndroidMusicPlayer Java class.
++ *
++ * MediaPlayer cannot play MIDI, so this driver is meant for music sets that
++ * ship real audio files (OGG/MP3/WAV/FLAC) instead of .mid files.
++ */
++class MusicDriver_Android : public MusicDriver {
++private:
++	uint8_t vol = 0; ///< The current volume, in percent.
++
++public:
++	std::optional<std::string_view> Start(const StringList &parm) override;
++	void Stop() override;
++	void PlaySong(const MusicSongInfo &song) override;
++	void StopSong() override;
++	bool IsSongPlaying() override;
++	void SetVolume(uint8_t vol) override;
++	std::string_view GetName() const override { return "Android MediaPlayer Music Driver"; }
++
++	~MusicDriver_Android() override { this->Stop(); }
++};
++
++/** Factory for the Android MediaPlayer music driver. */
++class FMusicDriver_Android : public DriverFactoryBase {
++public:
++	FMusicDriver_Android() : DriverFactoryBase(Driver::DT_MUSIC, 1, "android", "Android MediaPlayer Music Driver") {}
++	std::unique_ptr<Driver> CreateInstance() const override { return std::make_unique<MusicDriver_Android>(); }
++};
++
++#endif /* MUSIC_MUSIC_DRIVER_ANDROID_H */

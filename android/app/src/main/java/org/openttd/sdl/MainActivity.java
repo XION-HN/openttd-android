@@ -17,6 +17,8 @@ import android.util.Log;
 import org.libsdl.app.SDLActivity;
 
 import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.EOFException;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.zip.GZIPInputStream;
 
 /**
  * SDLActivity 的 OpenTTD 包装层。
@@ -92,6 +95,9 @@ public class MainActivity extends SDLActivity {
         }
 
         ensureChineseConfig();
+
+        // 从「用 OpenTTD 打开」进来的音乐模组
+        importMusicModFromIntent(getIntent());
 
         try {
             System.loadLibrary("SDL2");
@@ -270,6 +276,8 @@ public class MainActivity extends SDLActivity {
             // 32bpp 画质模组需要 32bpp blitter
             content = setIniKey(content, "misc", "blitter", "32bpp-optimized");
             content = setIniKey(content, "misc", "language", "simplified_chinese.lng");
+            // 用 Android MediaPlayer 播放音乐集里的真实音频（OGG/MP3/WAV）；MIDI 不支持
+            content = setIniKey(content, "misc", "musicdriver", "android");
             content = setIniKey(content, "misc", "small_font", CJK_FONT);
             content = setIniKey(content, "misc", "medium_font", CJK_FONT);
             content = setIniKey(content, "misc", "large_font", CJK_FONT);
@@ -404,5 +412,159 @@ public class MainActivity extends SDLActivity {
         try (OutputStream out = new FileOutputStream(f)) {
             out.write(text.getBytes(StandardCharsets.UTF_8));
         }
+    }
+
+    // ------------------------------------------------------- music mod import
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        importMusicModFromIntent(intent);
+    }
+
+    /**
+     * 「用 OpenTTD 打开」一个音乐模组 .tar.gz 时，把它解包进 baseset/。
+     * 包内路径需包含 openttd_ogg_mod/baseset/，其后的部分就是 baseset 下的相对路径。
+     */
+    private void importMusicModFromIntent(Intent intent) {
+        if (intent == null) return;
+        Uri uri = intent.getData();
+        if (uri == null && intent.hasExtra(Intent.EXTRA_STREAM)) {
+            android.os.Parcelable extra;
+            if (android.os.Build.VERSION.SDK_INT >= 33) {
+                extra = intent.getParcelableExtra(Intent.EXTRA_STREAM, android.os.Parcelable.class);
+            } else {
+                extra = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            }
+            if (extra instanceof Uri) uri = (Uri) extra;
+        }
+        if (uri == null) return;
+
+        final Uri source = uri;
+        new Thread(() -> {
+            try {
+                logLine("music mod import started: " + source);
+                int count = importTarGzMusicSet(source);
+                logLine("music mod import: " + count + " files");
+                runOnUiThread(() -> android.widget.Toast.makeText(this,
+                        "音乐模组导入完成：" + count + " 个文件。请重启 OpenTTD 后生效。",
+                        android.widget.Toast.LENGTH_LONG).show());
+            } catch (Throwable t) {
+                logLine("music mod import failed: " + Log.getStackTraceString(t));
+                runOnUiThread(() -> android.widget.Toast.makeText(this,
+                        "音乐模组导入失败: " + t.getMessage(),
+                        android.widget.Toast.LENGTH_LONG).show());
+            }
+        }, "OpenTTD-MusicImport").start();
+    }
+
+    /** 把 tar.gz 里 openttd_ogg_mod/baseset/ 之后的文件写入 baseset/。@return 写入的文件数 */
+    private int importTarGzMusicSet(Uri uri) throws IOException {
+        final String marker = "openttd_ogg_mod/baseset/";
+        File base = new File(sDataDir, "baseset");
+        if (!base.isDirectory() && !base.mkdirs()) throw new IOException("无法创建 baseset 目录");
+
+        int extracted = 0;
+        InputStream raw = getContentResolver().openInputStream(uri);
+        if (raw == null) throw new IOException("无法打开文件");
+
+        try (InputStream in = new GZIPInputStream(new BufferedInputStream(raw))) {
+            byte[] header = new byte[512];
+            while (readFully(in, header, header.length) && !isZeroBlock(header)) {
+                String name = tarString(header, 0, 100);
+                String prefix = tarString(header, 345, 155);
+                if (!prefix.isEmpty()) name = prefix + "/" + name;
+                long size = tarOctal(header, 124, 12);
+                char type = (char) (header[156] & 0xFF);
+                boolean regular = type == '0' || type == 0;
+
+                int pos = name.indexOf(marker);
+                String rel = pos >= 0 ? name.substring(pos + marker.length()) : null;
+                if (!regular || rel == null || rel.isEmpty() || rel.contains("..")) {
+                    skipFully(in, size + padFor(size));
+                    continue;
+                }
+
+                File out = new File(base, rel);
+                File parent = out.getParentFile();
+                if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+                    skipFully(in, size + padFor(size));
+                    continue;
+                }
+
+                try (OutputStream os = new FileOutputStream(out)) {
+                    copyExactly(in, os, size);
+                }
+                extracted++;
+                skipFully(in, padFor(size));
+            }
+        }
+        return extracted;
+    }
+
+    private static long padFor(long size) {
+        long rem = size % 512;
+        return rem == 0 ? 0 : 512 - rem;
+    }
+
+    private static boolean readFully(InputStream in, byte[] buf, int len) throws IOException {
+        int off = 0;
+        while (off < len) {
+            int n = in.read(buf, off, len - off);
+            if (n < 0) {
+                if (off == 0) return false;
+                throw new EOFException("tar header truncated");
+            }
+            off += n;
+        }
+        return true;
+    }
+
+    private static void skipFully(InputStream in, long len) throws IOException {
+        while (len > 0) {
+            long n = in.skip(len);
+            if (n <= 0) {
+                if (in.read() < 0) throw new EOFException("tar data truncated");
+                n = 1;
+            }
+            len -= n;
+        }
+    }
+
+    private static void copyExactly(InputStream in, OutputStream out, long len) throws IOException {
+        byte[] buf = new byte[65536];
+        while (len > 0) {
+            int n = in.read(buf, 0, (int) Math.min(buf.length, len));
+            if (n < 0) throw new EOFException("tar file truncated");
+            out.write(buf, 0, n);
+            len -= n;
+        }
+    }
+
+    private static boolean isZeroBlock(byte[] block) {
+        for (byte b : block) {
+            if (b != 0) return false;
+        }
+        return true;
+    }
+
+    private static String tarString(byte[] header, int offset, int length) {
+        int end = offset;
+        int limit = Math.min(offset + length, header.length);
+        while (end < limit && header[end] != 0) end++;
+        return new String(header, offset, end - offset, StandardCharsets.UTF_8).trim();
+    }
+
+    private static long tarOctal(byte[] header, int offset, int length) {
+        long value = 0;
+        int limit = Math.min(offset + length, header.length);
+        for (int i = offset; i < limit; i++) {
+            int c = header[i] & 0xFF;
+            if (c == 0 || c == ' ') break;
+            if (c < '0' || c > '7') continue;
+            value = value * 8 + (c - '0');
+        }
+        return value;
     }
 }

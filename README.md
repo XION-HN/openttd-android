@@ -3,6 +3,10 @@
 把 OpenTTD 15.3 移植到 Android（arm64-v8a），基于 **NDK + SDL2 + FreeType + Gradle**。
 官方 OpenTTD 源码本身不含 Android 构建系统，本仓库提供：
 
+- `patches/0003-music-driver-android.patch`：Android MediaPlayer 音乐驱动
+  - 新增 `MusicDriver_Android`（`src/music/music_driver_android.cpp/.h`），把音乐文件交给 Java 的 `org.openttd.sdl.AndroidMusicPlayer` 播放
+  - 播放的是音乐集里的真实音频文件（OGG/MP3/WAV/FLAC）；MIDI 无法用 MediaPlayer 播放
+  - 驱动名 `android`，`MainActivity` 会把 `misc.musicdriver` 设成它
 - `patches/0002-content-search-hidden-newgrf.patch`：内容列表补全补丁
   - BaNaNaS 会按客户端上报的版本号过滤 `compatibility`，被标成旧版本兼容的模组（FIRS 1-4、FISH 1、Iron Horse 1/2、2cc Trainset 等）服务端根本不下发
   - 该补丁额外用 `0.0.1`/`1.2.0` 各请求一轮列表再合并去重，使这些模组能被搜到
@@ -39,6 +43,9 @@ cd android && ./gradlew assembleDebug
 - ✅ 中文界面（FreeType + CJK 字体，12929 字符：GB2312 全字 + 中文符号/全角/箭头等）
 - ✅ 内置 Chinese True Town Names（zbx1425）并设为新游戏默认地名
 - ✅ 存档/配置在 /sdcard/OpenTTD（需「所有文件访问权限」）
+- ✅ 自定义 BGM 导入：用 OpenTTD「打开」或分享一个音乐模组 `.tar.gz` 即自动解到 `baseset/`
+  - 包内路径需含 `openttd_ogg_mod/baseset/<音乐集名>/...`，导入后重启游戏生效
+  - 配合 `AndroidMusicPlayer` 可播放 OGG/MP3 音乐集
 - ✅ 内置 OpenMSX 音乐集（BGM）：音乐窗口可直接选曲，不再是「无音乐可用」
 - ✅ 联网内容下载：已加 INTERNET 权限；无 libcurl 时自动走 OpenTTD 的 TCP fallback 下载通道
 - ✅ 内容搜索补全：旧版模组（FIRS 1-4 等）不再因兼容性标记被 BaNaNaS 隐藏
