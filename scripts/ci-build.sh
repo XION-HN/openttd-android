@@ -150,9 +150,12 @@ mkdir -p "$AND/jniLibs/$ABI" "$AND/assets/data/baseset" "$AND/assets/data/lang"
 
 cp "$CLIENT_DIR/libmain.so" "$AND/jniLibs/$ABI/libmain.so"
 cp "$SDL2_PREFIX/lib/libSDL2.so" "$AND/jniLibs/$ABI/libSDL2.so"
-cp "$(ls "$MIXER_PREFIX"/lib/libSDL2_mixer-2.0.so.0.* | head -1)" "$AND/jniLibs/$ABI/libSDL2_mixer-2.0.so.0"
+# SDL2_mixer 的文件名随版本/SOVERSION 变化，按自身 SONAME 落盘，保证 libmain 的 DT_NEEDED 能命中
+MIXER_LIB=$(ls "$MIXER_PREFIX"/lib/libSDL2_mixer-2.0.so* | head -1)
+MIXER_SONAME=$("$NDK_PREBUILT/bin/llvm-readelf" -d "$MIXER_LIB" | sed -n 's/.*SONAME.*\[\(.*\)\].*/\1/p')
+cp "$MIXER_LIB" "$AND/jniLibs/$ABI/${MIXER_SONAME:-libSDL2_mixer-2.0.so.0}"
 cp "$NDK_PREBUILT/sysroot/usr/lib/$ANDROID_TRIPLE/libc++_shared.so" "$AND/jniLibs/$ABI/libc++_shared.so"
-for so in libmain.so libSDL2.so libSDL2_mixer-2.0.so.0 libc++_shared.so; do
+for so in "$AND/jniLibs/$ABI"/*.so*; do
     "$NDK_PREBUILT/bin/llvm-strip" --strip-unneeded "$AND/jniLibs/$ABI/$so" 2>/dev/null || true
 done
 
