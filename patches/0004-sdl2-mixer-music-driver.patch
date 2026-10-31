@@ -19,10 +19,10 @@ index bb31620..f9910ff 100644
 +endif()
 diff --git a/src/music/sdl2_mixer_m.cpp b/src/music/sdl2_mixer_m.cpp
 new file mode 100644
-index 0000000..ccad9b1
+index 0000000..3a40ffb
 --- /dev/null
 +++ b/src/music/sdl2_mixer_m.cpp
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,118 @@
 +/*
 + * This file is part of OpenTTD.
 + * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -68,10 +68,15 @@ index 0000000..ccad9b1
 +		return "Failed to initialise the required SDL_mixer decoders";
 +	}
 +
-+	if (Mix_OpenAudio(48000, AUDIO_S16SYS, 2, 4096) < 0) {
-+		Debug(misc, 0, "sdl2mixer: Mix_OpenAudio failed: {}", Mix_GetError());
-+		return "Failed to open the SDL_mixer audio device";
++	/* Android 等后端只允许同时打开一个默认输出设备；OpenTTD 的音效驱动通常
++	 * 已经占用了它，此时 SDL_mixer 打不开。这里不当作致命错误：驱动照常加载，
++	 * 只是没有音乐，避免整个游戏因为没声音而退出。 */
++	if (Mix_OpenAudioDevice(48000, AUDIO_S16SYS, 2, 4096, nullptr, 0) < 0) {
++		Debug(misc, 0, "sdl2mixer: audio device unavailable ({}); music will be silent", Mix_GetError());
++		this->device_open = false;
++		return std::nullopt;
 +	}
++	this->device_open = true;
 +
 +	Mix_VolumeMusic(MIX_MAX_VOLUME);
 +	return std::nullopt;
@@ -79,6 +84,8 @@ index 0000000..ccad9b1
 +
 +void MusicDriver_SDL2Mixer::Stop()
 +{
++	if (!this->device_open) return;
++
 +	if (_mixer_music != nullptr) {
 +		Mix_HaltMusic();
 +		Mix_FreeMusic(_mixer_music);
@@ -90,6 +97,8 @@ index 0000000..ccad9b1
 +
 +void MusicDriver_SDL2Mixer::PlaySong(const MusicSongInfo &song)
 +{
++	if (!this->device_open) return;
++
 +	if (_mixer_music != nullptr) {
 +		Mix_HaltMusic();
 +		Mix_FreeMusic(_mixer_music);
@@ -111,16 +120,22 @@ index 0000000..ccad9b1
 +
 +void MusicDriver_SDL2Mixer::StopSong()
 +{
++	if (!this->device_open) return;
++
 +	Mix_HaltMusic();
 +}
 +
 +bool MusicDriver_SDL2Mixer::IsSongPlaying()
 +{
++	if (!this->device_open) return false;
++
 +	return Mix_PlayingMusic() != 0;
 +}
 +
 +void MusicDriver_SDL2Mixer::SetVolume(uint8_t vol)
 +{
++	if (!this->device_open) return;
++
 +	/* OpenTTD volume is 0..128, which matches MIX_MAX_VOLUME. */
 +	Mix_VolumeMusic(vol);
 +}
@@ -128,10 +143,10 @@ index 0000000..ccad9b1
 +#endif /* WITH_SDL2_MIXER */
 diff --git a/src/music/sdl2_mixer_m.h b/src/music/sdl2_mixer_m.h
 new file mode 100644
-index 0000000..7a2f96b
+index 0000000..d24aa8d
 --- /dev/null
 +++ b/src/music/sdl2_mixer_m.h
-@@ -0,0 +1,40 @@
+@@ -0,0 +1,43 @@
 +/*
 + * This file is part of OpenTTD.
 + * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -148,6 +163,9 @@ index 0000000..7a2f96b
 +
 +/** The music player that uses SDL2_mixer. */
 +class MusicDriver_SDL2Mixer : public MusicDriver {
++private:
++	bool device_open = false; ///< 音频设备是否成功打开；打不开时驱动仍加载，只是静音。
++
 +public:
 +	std::optional<std::string_view> Start(const StringList &param) override;
 +

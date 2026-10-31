@@ -17,10 +17,10 @@ index cf60e78..bb31620 100644
          midifile.cpp
 diff --git a/src/music/music_driver_android.cpp b/src/music/music_driver_android.cpp
 new file mode 100644
-index 0000000..d82d4cd
+index 0000000..cb52848
 --- /dev/null
 +++ b/src/music/music_driver_android.cpp
-@@ -0,0 +1,162 @@
+@@ -0,0 +1,165 @@
 +/*
 + * This file is part of OpenTTD.
 + * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
@@ -101,8 +101,11 @@ index 0000000..d82d4cd
 +
 +std::optional<std::string_view> MusicDriver_Android::Start([[maybe_unused]] const StringList &parm)
 +{
++	/* 拿不到 Java 播放器也不要让游戏起不来：驱动照常加载，只是没有音乐。 */
 +	JNIEnv *env = AndroidGetJNIEnv();
-+	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) return "the Android music player is not available";
++	if (env == nullptr || !AndroidEnsureMusicPlayer(env)) {
++		Debug(misc, 0, "Android music player unavailable; music will be silent");
++	}
 +
 +	return std::nullopt;
 +}

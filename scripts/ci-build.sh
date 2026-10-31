@@ -53,6 +53,8 @@ git apply "$ROOT/patches/openttd-android-15.3.patch"
 git apply "$ROOT/patches/0002-content-search-hidden-newgrf.patch"
 # Android MediaPlayer 音乐驱动：让 OGG/MP3 音乐集能播放（自定义 BGM）。
 git apply "$ROOT/patches/0003-music-driver-android.patch"
+# 旧版原码：SDL2_mixer 音乐驱动（Ogg/MP3/FLAC）
+git apply "$ROOT/patches/0004-sdl2-mixer-music-driver.patch"
 echo "补丁已应用: $(git status --short | wc -l) 个文件被修改"
 
 echo "==================== 2/5 宿主工具（strgen 等） ===================="

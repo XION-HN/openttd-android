@@ -10,6 +10,8 @@
   - 新增 `MusicDriver_Android`（`src/music/music_driver_android.cpp/.h`），把音乐文件交给 Java 的 `org.openttd.sdl.AndroidMusicPlayer` 播放
   - 播放的是音乐集里的真实音频文件（OGG/MP3/WAV/FLAC）；MIDI 无法用 MediaPlayer 播放
   - 驱动名 `android`，`MainActivity` 会把 `misc.musicdriver` 设成它
+  - 注意：Android 的 SDL 音频后端只允许一个默认输出设备，SDL2_mixer 会和音效驱动抢设备，
+    因此默认用 MediaPlayer；两个驱动在打不开设备时都是非致命降级（静音），不会闪退
 - `patches/0002-content-search-hidden-newgrf.patch`：内容列表补全补丁
   - BaNaNaS 会按客户端上报的版本号过滤 `compatibility`，被标成旧版本兼容的模组（FIRS 1-4、FISH 1、Iron Horse 1/2、2cc Trainset 等）服务端根本不下发
   - 该补丁额外用 `0.0.1`/`1.2.0` 各请求一轮列表再合并去重，使这些模组能被搜到
