@@ -276,8 +276,8 @@ public class MainActivity extends SDLActivity {
             // 32bpp 画质模组需要 32bpp blitter
             content = setIniKey(content, "misc", "blitter", "32bpp-optimized");
             content = setIniKey(content, "misc", "language", "simplified_chinese.lng");
-            // 用 Android MediaPlayer 播放音乐集里的真实音频（OGG/MP3/WAV）；MIDI 不支持
-            content = setIniKey(content, "misc", "musicdriver", "android");
+            // 用 SDL2_mixer 播放音乐集里的真实音频（OGG/MP3/FLAC）；MIDI 不支持
+            content = setIniKey(content, "misc", "musicdriver", "sdl2mixer");
             content = setIniKey(content, "misc", "small_font", CJK_FONT);
             content = setIniKey(content, "misc", "medium_font", CJK_FONT);
             content = setIniKey(content, "misc", "large_font", CJK_FONT);

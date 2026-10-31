@@ -3,7 +3,10 @@
 把 OpenTTD 15.3 移植到 Android（arm64-v8a），基于 **NDK + SDL2 + FreeType + Gradle**。
 官方 OpenTTD 源码本身不含 Android 构建系统，本仓库提供：
 
-- `patches/0003-music-driver-android.patch`：Android MediaPlayer 音乐驱动
+- `patches/0004-sdl2-mixer-music-driver.patch`：SDL2_mixer 音乐驱动（Ogg/MP3/FLAC）
+  - 就是旧版 `openttd_ogg_mod/patches/src/music/sdl2_mixer_m.cpp` 的原码，驱动名 `sdl2mixer`
+  - 需要交叉编译 SDL2_mixer（STB Vorbis 内置解码），CI 脚本已包含
+- `patches/0003-music-driver-android.patch`：Android MediaPlayer 音乐驱动（备用）
   - 新增 `MusicDriver_Android`（`src/music/music_driver_android.cpp/.h`），把音乐文件交给 Java 的 `org.openttd.sdl.AndroidMusicPlayer` 播放
   - 播放的是音乐集里的真实音频文件（OGG/MP3/WAV/FLAC）；MIDI 无法用 MediaPlayer 播放
   - 驱动名 `android`，`MainActivity` 会把 `misc.musicdriver` 设成它

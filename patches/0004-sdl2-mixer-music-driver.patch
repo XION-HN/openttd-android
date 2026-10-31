@@ -1,0 +1,174 @@
+diff --git a/src/music/CMakeLists.txt b/src/music/CMakeLists.txt
+index bb31620..f9910ff 100644
+--- a/src/music/CMakeLists.txt
++++ b/src/music/CMakeLists.txt
+@@ -55,3 +55,14 @@ add_files(
+     null_m.cpp
+     null_m.h
+ )
++
++# SDL2_mixer 音乐驱动：播放音乐集里的压缩音频（Ogg/MP3/FLAC），MIDI 仍需 fluidsynth。
++find_package(SDL2_mixer CONFIG QUIET)
++if(SDL2_mixer_FOUND AND TARGET SDL2_mixer::SDL2_mixer)
++    target_compile_definitions(openttd_lib PRIVATE WITH_SDL2_MIXER)
++    add_files(
++        sdl2_mixer_m.cpp
++        sdl2_mixer_m.h
++    )
++    target_link_libraries(openttd_lib SDL2_mixer::SDL2_mixer)
++endif()
+diff --git a/src/music/sdl2_mixer_m.cpp b/src/music/sdl2_mixer_m.cpp
+new file mode 100644
+index 0000000..ccad9b1
+--- /dev/null
++++ b/src/music/sdl2_mixer_m.cpp
+@@ -0,0 +1,103 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
++ */
++
++/** @file sdl2_mixer_m.cpp Playing music via SDL2_mixer, which supports compressed audio (Ogg, MP3, FLAC, ...). */
++
++#ifdef WITH_SDL2_MIXER
++
++#include "../stdafx.h"
++#include "../debug.h"
++#include "sdl2_mixer_m.h"
++#include "midifile.hpp"
++#include <SDL_mixer.h>
++
++#include "../safeguards.h"
++
++static FMusicDriver_SDL2Mixer iFMusicDriver_SDL2Mixer;
++
++/** Currently loaded/played music, owned by us. */
++static Mix_Music *_mixer_music = nullptr;
++
++std::optional<std::string_view> MusicDriver_SDL2Mixer::Start(const StringList &)
++{
++	int wanted = 0;
++#ifdef MIX_INIT_OGG
++	wanted |= MIX_INIT_OGG;
++#endif
++#ifdef MIX_INIT_MP3
++	wanted |= MIX_INIT_MP3;
++#endif
++#ifdef MIX_INIT_FLAC
++	wanted |= MIX_INIT_FLAC;
++#endif
++#ifdef MIX_INIT_MOD
++	wanted |= MIX_INIT_MOD;
++#endif
++
++	if ((Mix_Init(wanted) & wanted) != wanted) {
++		Debug(misc, 0, "sdl2mixer: Mix_Init failed: {}", Mix_GetError());
++		return "Failed to initialise the required SDL_mixer decoders";
++	}
++
++	if (Mix_OpenAudio(48000, AUDIO_S16SYS, 2, 4096) < 0) {
++		Debug(misc, 0, "sdl2mixer: Mix_OpenAudio failed: {}", Mix_GetError());
++		return "Failed to open the SDL_mixer audio device";
++	}
++
++	Mix_VolumeMusic(MIX_MAX_VOLUME);
++	return std::nullopt;
++}
++
++void MusicDriver_SDL2Mixer::Stop()
++{
++	if (_mixer_music != nullptr) {
++		Mix_HaltMusic();
++		Mix_FreeMusic(_mixer_music);
++		_mixer_music = nullptr;
++	}
++	Mix_CloseAudio();
++	Mix_Quit();
++}
++
++void MusicDriver_SDL2Mixer::PlaySong(const MusicSongInfo &song)
++{
++	if (_mixer_music != nullptr) {
++		Mix_HaltMusic();
++		Mix_FreeMusic(_mixer_music);
++		_mixer_music = nullptr;
++	}
++
++	/* GetSMFFile() resolves the path for any file listed as a "standard MIDI"
++	 * entry in the .obm; it does not care that the file is actually Ogg. */
++	std::string filename = MidiFile::GetSMFFile(song);
++	if (filename.empty()) return;
++
++	_mixer_music = Mix_LoadMUS(filename.c_str());
++	if (_mixer_music == nullptr) {
++		Debug(misc, 1, "sdl2mixer: cannot load '{}': {}", filename, Mix_GetError());
++		return;
++	}
++	Mix_PlayMusic(_mixer_music, 0);
++}
++
++void MusicDriver_SDL2Mixer::StopSong()
++{
++	Mix_HaltMusic();
++}
++
++bool MusicDriver_SDL2Mixer::IsSongPlaying()
++{
++	return Mix_PlayingMusic() != 0;
++}
++
++void MusicDriver_SDL2Mixer::SetVolume(uint8_t vol)
++{
++	/* OpenTTD volume is 0..128, which matches MIX_MAX_VOLUME. */
++	Mix_VolumeMusic(vol);
++}
++
++#endif /* WITH_SDL2_MIXER */
+diff --git a/src/music/sdl2_mixer_m.h b/src/music/sdl2_mixer_m.h
+new file mode 100644
+index 0000000..7a2f96b
+--- /dev/null
++++ b/src/music/sdl2_mixer_m.h
+@@ -0,0 +1,40 @@
++/*
++ * This file is part of OpenTTD.
++ * OpenTTD is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, version 2.
++ * OpenTTD is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
++ * See the GNU General Public License for more details. You should have received a copy of the GNU General Public License along with OpenTTD. If not, see <https://www.gnu.org/licenses/old-licenses/gpl-2.0>.
++ */
++
++/** @file sdl2_mixer_m.h Base for playing music via SDL2_mixer (Ogg/MP3/FLAC/MOD/WAV). */
++
++#ifndef MUSIC_SDL2_MIXER_H
++#define MUSIC_SDL2_MIXER_H
++
++#include "music_driver.hpp"
++
++/** The music player that uses SDL2_mixer. */
++class MusicDriver_SDL2Mixer : public MusicDriver {
++public:
++	std::optional<std::string_view> Start(const StringList &param) override;
++
++	void Stop() override;
++
++	void PlaySong(const MusicSongInfo &song) override;
++
++	void StopSong() override;
++
++	bool IsSongPlaying() override;
++
++	void SetVolume(uint8_t vol) override;
++	std::string_view GetName() const override { return "sdl2mixer"; }
++};
++
++/** Factory for the SDL2_mixer music player. */
++class FMusicDriver_SDL2Mixer : public DriverFactoryBase {
++public:
++	static const int PRIORITY = 8;
++	FMusicDriver_SDL2Mixer() : DriverFactoryBase(Driver::DT_MUSIC, PRIORITY, "sdl2mixer", "SDL2_mixer Music Driver (Ogg/MP3/FLAC)") {}
++	std::unique_ptr<Driver> CreateInstance() const override { return std::make_unique<MusicDriver_SDL2Mixer>(); }
++};
++
++#endif /* MUSIC_SDL2_MIXER_H */

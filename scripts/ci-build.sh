@@ -15,6 +15,7 @@ FT_REF="${FT_REF:-VER-2-13-3}"
 XZ_VER="${XZ_VER:-5.6.3}"
 OPENGFX_VER="${OPENGFX_VER:-8.0}"
 OPENMSX_VER="${OPENMSX_VER:-0.4.2}"
+SDL2_MIXER_REF="${SDL2_MIXER_REF:-release-2.8.1}"
 JOBS="${JOBS:-$(nproc)}"
 
 if [ -z "${ANDROID_NDK_HOME:-}" ] && [ -n "${ANDROID_SDK_ROOT:-}" ]; then
@@ -89,6 +90,23 @@ cmake -S "$FT_SRC" -B "$WORK/build/freetype-$ABI" -G Ninja \
 cmake --build "$WORK/build/freetype-$ABI" -j "$JOBS"
 cmake --install "$WORK/build/freetype-$ABI"
 
+echo "==================== 3.5/5 SDL2_mixer for Android ===================="
+MIXER_SRC="$WORK/sdl2_mixer"
+MIXER_PREFIX="$WORK/deps/sdl2_mixer-$ABI"
+if [ ! -d "$MIXER_SRC/.git" ]; then
+    git clone --depth 1 --branch "$SDL2_MIXER_REF" https://github.com/libsdl-org/SDL_mixer.git "$MIXER_SRC"
+fi
+cmake -S "$MIXER_SRC" -B "$WORK/build/sdl2_mixer-$ABI" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN" \
+    -DANDROID_ABI="$ABI" -DANDROID_PLATFORM="android-$API" -DANDROID_STL=c++_shared \
+    -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$MIXER_PREFIX" \
+    -DSDL2_DIR="$SDL2_PREFIX/lib/cmake/SDL2" \
+    -DSDL2MIXER_VORBIS=STB -DSDL2MIXER_MP3=OFF -DSDL2MIXER_FLAC=OFF \
+    -DSDL2MIXER_MOD=OFF -DSDL2MIXER_MIDI=OFF -DSDL2MIXER_OPUS=OFF \
+    -DSDL2MIXER_WAVPACK=OFF -DSDL2MIXER_SAMPLES=OFF -DSDL2MIXER_VENDORED=ON
+cmake --build "$WORK/build/sdl2_mixer-$ABI" -j "$JOBS"
+cmake --install "$WORK/build/sdl2_mixer-$ABI"
+
 echo "==================== 4.5/5 liblzma for Android ===================="
 XZ_SRC="$WORK/xz"
 XZ_PREFIX="$WORK/deps/xz-$ABI"
@@ -114,6 +132,7 @@ cmake -S "$WORK/OpenTTD" -B "$CLIENT_DIR" -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH="$SDL2_PREFIX;$FT_PREFIX;$XZ_PREFIX" \
     -DSDL2_DIR="$SDL2_PREFIX/lib/cmake/SDL2" \
+    -DSDL2_mixer_DIR="$MIXER_PREFIX/lib/cmake/SDL2_mixer" \
     -DFREETYPE_LIBRARY="$FT_PREFIX/lib/libfreetype.a" \
     -DFREETYPE_INCLUDE_DIRS="$FT_PREFIX/include/freetype2" \
     -DLIBLZMA_LIBRARY="$XZ_PREFIX/lib/liblzma.a" \
@@ -129,8 +148,9 @@ mkdir -p "$AND/jniLibs/$ABI" "$AND/assets/data/baseset" "$AND/assets/data/lang"
 
 cp "$CLIENT_DIR/libmain.so" "$AND/jniLibs/$ABI/libmain.so"
 cp "$SDL2_PREFIX/lib/libSDL2.so" "$AND/jniLibs/$ABI/libSDL2.so"
+cp "$(ls "$MIXER_PREFIX"/lib/libSDL2_mixer-2.0.so.0.* | head -1)" "$AND/jniLibs/$ABI/libSDL2_mixer-2.0.so.0"
 cp "$NDK_PREBUILT/sysroot/usr/lib/$ANDROID_TRIPLE/libc++_shared.so" "$AND/jniLibs/$ABI/libc++_shared.so"
-for so in libmain.so libSDL2.so libc++_shared.so; do
+for so in libmain.so libSDL2.so libSDL2_mixer-2.0.so.0 libc++_shared.so; do
     "$NDK_PREBUILT/bin/llvm-strip" --strip-unneeded "$AND/jniLibs/$ABI/$so" 2>/dev/null || true
 done
 
